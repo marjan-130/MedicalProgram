@@ -21,13 +21,12 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="compile_qrc.py" />
     <Compile Include="MedicalProgram.py" />
     <Compile Include="main_window.py" />
+    <Compile Include="Alogoritm.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="pictures\backgroundMain.png" />
-    <Content Include="resources.qrс" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="pictures\" />
