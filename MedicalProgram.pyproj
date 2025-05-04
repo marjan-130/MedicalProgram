@@ -24,6 +24,8 @@
     <Compile Include="MedicalProgram.py" />
     <Compile Include="main_window.py" />
     <Compile Include="Alogoritm.py" />
+    <Compile Include="DataBase.py" />
+    <Compile Include="login_ui.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="pictures\backgroundMain.png" />
