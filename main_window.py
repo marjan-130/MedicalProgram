@@ -1,8 +1,12 @@
-﻿from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QLabel, QFrame, QHBoxLayout, QMessageBox
+﻿from PyQt6.QtWidgets import (
+    QApplication, QWidget, QPushButton, QVBoxLayout,
+    QLabel, QFrame, QHBoxLayout, QMessageBox
+)
 from PyQt6.QtGui import QPixmap, QFontDatabase, QFont, QPainter
 from PyQt6.QtCore import Qt
 from login_ui import LoginWindow
 from Alogoritm import handle_button_click, on_db_connection_result, DbConnectionThread
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -38,14 +42,15 @@ class MainWindow(QWidget):
         self.setLayout(main_layout)
 
     def load_fonts(self):
+        """Завантажує кастомні шрифти."""
         wendy_id = QFontDatabase.addApplicationFont("fonts/WendyOne-Regular.ttf")
         marck_id = QFontDatabase.addApplicationFont("fonts/MarckScript-Regular.ttf")
         wendy_font = QFontDatabase.applicationFontFamilies(wendy_id)[0]
         marck_font = QFontDatabase.applicationFontFamilies(marck_id)[0]
-
         return wendy_font, marck_font
 
     def create_center_frame(self):
+        """Створює центральний фрейм для вмісту."""
         center_frame = QFrame()
         center_frame.setFixedSize(420, 500)
         center_frame.setStyleSheet("""
@@ -58,6 +63,7 @@ class MainWindow(QWidget):
         return center_frame
 
     def create_buttons(self, vbox, marck_font):
+        """Створює кнопки для різних дій."""
         for text in ["Enter", "Login", "Exit"]:
             btn = QPushButton(text)
             btn.setFixedSize(220, 45)
@@ -77,6 +83,7 @@ class MainWindow(QWidget):
             vbox.addWidget(btn)
 
     def handle_button_click(self, text: str):
+        """Обробка натискання кнопок."""
         if text == "Enter":
             QMessageBox.information(self, "Info", "Enter pressed (without DB connection).")
         elif text == "Exit":
@@ -86,19 +93,15 @@ class MainWindow(QWidget):
             self.login_window.show()
 
     def login_success(self, username):
+        """Обробка успішного входу користувача."""
         print(f"[INFO] User '{username}' successfully logged in.")
         QMessageBox.information(self, "Login", f"Welcome, {username}!")
-        # TODO: You can transition to another window here or display user profile data.
-    
+
     def paintEvent(self, event):
+        """Малює фонове зображення."""
         painter = QPainter(self)
         pixmap = QPixmap(self.background_path).scaled(
-            self.size(), Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation
+            self.size(), Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
         )
         painter.drawPixmap(self.rect(), pixmap)
-
-    def start_db_connection_thread(self):
-        print("Starting DB connection thread...")
-        self.db_thread = DbConnectionThread()
-        self.db_thread.result.connect(lambda connection: on_db_connection_result(connection, self))
-        self.db_thread.start()

@@ -21,6 +21,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="database_setup.py" />
     <Compile Include="MedicalProgram.py" />
     <Compile Include="main_window.py" />
     <Compile Include="Alogoritm.py" />

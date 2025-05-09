@@ -3,7 +3,8 @@
 )
 from PyQt6.QtGui import QFont, QCursor
 from PyQt6.QtCore import Qt
-
+import hashlib
+from DataBase import connect_to_database, add_user  # Підключення до БД
 
 class LoginWindow(QWidget):
     def __init__(self, login_callback=None):
@@ -13,28 +14,22 @@ class LoginWindow(QWidget):
         self.setStyleSheet("background-color: #e6f2fb;")
         self.login_callback = login_callback
         self.init_ui()
+
         field_style = """ color: black; background-color: white; border: 1px solid #ccc; border-radius: 5px; padding: 5px; """
         self.username_input.setStyleSheet(field_style)
         self.password_input.setStyleSheet(field_style)
 
-
     def init_ui(self):
-        # Основний лейаут
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Контейнер для форми
         form_widget = QWidget()
-        form_widget.setStyleSheet("""
-            background-color: white;
-            border-radius: 15px;
-        """)
+        form_widget.setStyleSheet(""" background-color: white; border-radius: 15px; """)
         form_layout = QVBoxLayout(form_widget)
         form_layout.setContentsMargins(30, 30, 30, 30)
         form_layout.setSpacing(15)
         form_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Логотип та назва
         logo = QLabel("⬜ VitalCore")
         logo.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         logo.setStyleSheet("color: white;")
@@ -60,26 +55,20 @@ class LoginWindow(QWidget):
 
         form_layout.addWidget(header_container)
 
-        # Заголовок
         title = QLabel("Вхід до системи")
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         form_layout.addWidget(title)
 
-        # Email
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Email")
         self.username_input.setFixedHeight(40)
-        self.username_input.setStyleSheet("border: 1px solid #ccc; border-radius: 5px; padding: 5px;")
 
-        # Пароль
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("Пароль")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.setFixedHeight(40)
-        self.password_input.setStyleSheet("border: 1px solid #ccc; border-radius: 5px; padding: 5px;")
 
-        # Кнопка
         login_button = QPushButton("Увійти")
         login_button.setFixedHeight(40)
         login_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
@@ -97,19 +86,17 @@ class LoginWindow(QWidget):
         self.message_label.setStyleSheet("color: red;")
         self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Реєстрація та Забули пароль
         footer_label = QLabel("Не маєте облікового запису?")
         footer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        register_link = QLabel('<a href="#">Зареєструватися</a>')
-        register_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        register_link.setOpenExternalLinks(True)
+        register_button = QPushButton("Зареєструватися")
+        register_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        register_button.clicked.connect(self.register_user)
 
-        forgot_link = QLabel('<a href="#">Забули пароль?</a>')
-        forgot_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        forgot_link.setOpenExternalLinks(True)
+        forgot_button = QPushButton("Забули пароль?")
+        forgot_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        forgot_button.clicked.connect(self.forgot_password)
 
-        # Додати елементи до лейауту
         form_layout.addSpacing(10)
         form_layout.addWidget(self.username_input)
         form_layout.addWidget(self.password_input)
@@ -117,17 +104,19 @@ class LoginWindow(QWidget):
         form_layout.addWidget(self.message_label)
         form_layout.addSpacing(10)
         form_layout.addWidget(footer_label)
-        form_layout.addWidget(register_link)
-        form_layout.addWidget(forgot_link)
+        form_layout.addWidget(register_button)
+        form_layout.addWidget(forgot_button)
 
         main_layout.addWidget(form_widget)
         self.setLayout(main_layout)
 
     def try_login(self):
-        username = self.username_input.text()
-        password = self.password_input.text()
+        username = self.username_input.text().strip()
+        password = self.password_input.text().strip()
 
-        from DataBase import connect_to_database
+        if not username or not password:
+            self.message_label.setText("Будь ласка, заповніть усі поля.")
+            return
 
         conn = connect_to_database()
         if not conn:
@@ -136,7 +125,8 @@ class LoginWindow(QWidget):
 
         try:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM login WHERE user_name = %s AND hash_password = %s", (username, password))
+            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+            cursor.execute("SELECT * FROM users WHERE user_name = ? AND hash_password = ?", (username, hashed_password))
             result = cursor.fetchone()
             if result:
                 if self.login_callback:
@@ -148,3 +138,18 @@ class LoginWindow(QWidget):
             self.message_label.setText(f"Помилка: {str(e)}")
         finally:
             conn.close()
+
+    def register_user(self):
+        username = self.username_input.text().strip()
+        password = self.password_input.text().strip()
+
+        if not username or not password:
+            self.message_label.setText("Будь ласка, заповніть усі поля.")
+            return
+
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        add_user(username, hashed_password)  # Додаємо нового користувача в базу
+        self.message_label.setText("Користувача успішно додано.")
+
+    def forgot_password(self):
+        pass  # Реалізувати логіку відновлення паролю
