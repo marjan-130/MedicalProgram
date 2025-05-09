@@ -29,10 +29,10 @@
     <Compile Include="Alogoritm.py" />
     <Compile Include="DataBase.py" />
     <Compile Include="login_ui.py" />
-    <Compile Include="register_algorithm.py" />
     <Compile Include="register_ui.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="database_setup.bd" />
     <Content Include="pictures\backgroundMain.png" />
   </ItemGroup>
   <ItemGroup>

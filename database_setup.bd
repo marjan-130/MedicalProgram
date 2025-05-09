@@ -1,0 +1,36 @@
+import os
+
+def create_database():
+    db_path = 'medical_program.db'
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # “аблиц€ дл€ лог≥н≥в
+    cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_name TEXT NOT NULL UNIQUE,
+        hash_password TEXT NOT NULL
+    )''')
+
+    # “аблиц€ з персональною, контактною та медичною ≥нформац≥Їю
+    cursor.execute('''CREATE TABLE IF NOT EXISTS user_info (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        full_name TEXT,
+        birth_date TEXT,
+        gender TEXT,
+        email TEXT,
+        phone TEXT,
+        role TEXT CHECK(role IN ('пац≥Їнт', 'л≥кар')) DEFAULT 'пац≥Їнт',
+        blood_type TEXT,
+        chronic_diseases TEXT,
+        allergies TEXT,
+        medications TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )''')
+
+    conn.commit()
+    conn.close()
+    print(f"Database created at: {os.path.abspath(db_path)}")
+
+create_database()

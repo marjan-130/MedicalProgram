@@ -3,7 +3,8 @@ from PyQt6.QtGui import QFont, QCursor
 from PyQt6.QtCore import Qt
 from login_algorithm import handle_login
 from custom_exceptions import EmptyFieldError, ValidationError
-from register_ui import BasicInfoWindow  # Імпортуємо RegisterWindow
+from register_ui import RegisterUI
+
 
 class LoginWindow(QWidget):
     def __init__(self, open_register_callback=None):
@@ -114,6 +115,6 @@ class LoginWindow(QWidget):
 
     def open_register(self):
         # Відкриваємо вікно реєстрації
-        self.register_window = BasicInfoWindow()
+        self.register_window = RegisterUI()
         self.register_window.show()
         self.close()  # Закриваємо вікно логіну
