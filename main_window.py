@@ -53,7 +53,7 @@ class MainWindow(QWidget):
         """Створює центральний фрейм для вмісту."""
         center_frame = QFrame()
         center_frame.setFixedSize(420, 500)
-        center_frame.setStyleSheet("""
+        center_frame.setStyleSheet(""" 
             QFrame {
                 background-color: #D1FBFF;
                 border-radius: 30px;
@@ -64,7 +64,8 @@ class MainWindow(QWidget):
 
     def create_buttons(self, vbox, marck_font):
         """Створює кнопки для різних дій."""
-        for text in ["Enter", "Login", "Exit"]:
+        button_texts = ["Enter", "Login", "Exit"]
+        for text in button_texts:
             btn = QPushButton(text)
             btn.setFixedSize(220, 45)
             btn.setFont(QFont(marck_font, 16))
@@ -79,6 +80,7 @@ class MainWindow(QWidget):
                     background-color: #55AAEE;
                 }
             """)
+            # Для кожної кнопки передаємо текст через лямбда-функцію
             btn.clicked.connect(lambda _, t=text: self.handle_button_click(t))
             vbox.addWidget(btn)
 
