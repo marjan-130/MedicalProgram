@@ -2,6 +2,8 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QComboBox, QFormLayout, QDialog
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+from profile_ui import ProfileWindow  # імпорт перенесено сюди
+import hashlib
 
 class EmptyFieldError(Exception):
     """Виключення для порожніх полів."""
@@ -35,11 +37,13 @@ class RegisterUI(QWidget):
         self.full_name_input = self.create_field("ПІБ")
         self.birth_date_input = self.create_field("Дата народження")
         self.gender_input = self.create_combo_box(["Чоловік", "Жінка"])
+        self.email_input = self.create_field("Email")
         self.phone_input = self.create_field("Телефон")
         self.role_input = self.create_combo_box(["Пацієнт", "Лікар"])
 
         for widget in [self.username_input, self.password_input, self.full_name_input,
-                       self.birth_date_input, self.gender_input, self.phone_input, self.role_input]:
+                       self.birth_date_input, self.gender_input, self.email_input,
+                       self.phone_input, self.role_input]:
             form_layout.addWidget(widget)
 
         self.message_label = QLabel("")
@@ -83,14 +87,23 @@ class RegisterUI(QWidget):
         full_name = self.full_name_input.text().strip()
         birth_date = self.birth_date_input.text().strip()
         gender = self.gender_input.currentText()
+        email = self.email_input.text().strip()
         phone = self.phone_input.text().strip()
         role = self.role_input.currentText().lower()
 
         try:
-            if not all([username, password, full_name, birth_date, gender, phone, role]):
+            if not all([username, password, full_name, birth_date, gender, email, phone, role]):
                 raise EmptyFieldError("Будь ласка, заповніть усі поля.")
 
-            user_id = self.save_user_data(username, password, full_name, birth_date, gender, phone, role)
+            # Перевіряємо, чи існує вже користувач з таким логіном
+            conn = sqlite3.connect('medical_program.db', timeout=10)
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE user_name = ?", (username,))
+            if cursor.fetchone():
+                raise Exception("Користувач з таким логіном вже існує.")
+
+            password_hash = self.hash_password(password)  # Хешуємо пароль перед збереженням
+            user_id = self.save_user_data(username, password_hash, full_name, birth_date, gender, email, phone, role)
 
             if role == "пацієнт":
                 self.show_patient_form(user_id)
@@ -99,30 +112,22 @@ class RegisterUI(QWidget):
 
         except EmptyFieldError as e:
             self.message_label.setText(str(e))
-        except sqlite3.IntegrityError:
-            self.message_label.setText("Користувач з таким логіном вже існує.")
         except Exception as e:
             self.message_label.setText(f"Помилка: {e}")
 
-    def save_user_data(self, username, password, full_name, birth_date, gender, phone, role):
+    def hash_password(self, password):
+        return hashlib.sha256(password.encode()).hexdigest()
+
+    def save_user_data(self, username, password, full_name, birth_date, gender, email, phone, role):
         conn = sqlite3.connect('medical_program.db', timeout=10)
         cursor = conn.cursor()
 
-        # Додаємо користувача до таблиці users
-        cursor.execute('''
-            INSERT INTO users (user_name, hash_password)
-            VALUES (?, ?)
-        ''', (username, password))
-
-        # Отримуємо user_id новоствореного користувача
+        cursor.execute('''INSERT INTO users (user_name, hash_password) VALUES (?, ?)''', (username, password))
         cursor.execute('SELECT id FROM users WHERE user_name = ?', (username,))
         user_id = cursor.fetchone()[0]
 
-        # Додаємо основну інформацію користувача до user_info
-        cursor.execute('''
-            INSERT INTO user_info (user_id, full_name, birth_date, gender, phone, role)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (user_id, full_name, birth_date, gender, phone, role))
+        cursor.execute('''INSERT INTO user_info (user_id, full_name, birth_date, gender, email, phone, role)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)''', (user_id, full_name, birth_date, gender, email, phone, role))
 
         conn.commit()
         conn.close()
@@ -139,7 +144,8 @@ class RegisterUI(QWidget):
         save_button = QPushButton("Зберегти")
         save_button.clicked.connect(lambda: (
             self.save_patient_data(user_id, blood_type_input.text(), chronic_diseases_input.text(), allergies_input.text()),
-            form.accept()
+            form.accept(),
+            self.open_profile(user_id)
         ))
 
         form_layout.addRow("Група крові:", blood_type_input)
@@ -154,11 +160,9 @@ class RegisterUI(QWidget):
     def save_patient_data(self, user_id, blood_type, chronic_diseases, allergies):
         conn = sqlite3.connect('medical_program.db', timeout=10)
         cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE user_info
-            SET blood_type = ?, chronic_diseases = ?, allergies = ?
-            WHERE user_id = ?
-        ''', (blood_type, chronic_diseases, allergies, user_id))
+        cursor.execute('''UPDATE user_info
+                          SET blood_type = ?, chronic_diseases = ?, allergies = ?
+                          WHERE user_id = ?''', (blood_type, chronic_diseases, allergies, user_id))
         conn.commit()
         conn.close()
 
@@ -173,7 +177,8 @@ class RegisterUI(QWidget):
         save_button = QPushButton("Зберегти")
         save_button.clicked.connect(lambda: (
             self.save_doctor_data(user_id, specialization_input.text(), experience_input.text(), hospital_input.text()),
-            form.accept()
+            form.accept(),
+            self.open_profile(user_id)
         ))
 
         form_layout.addRow("Спеціалізація:", specialization_input)
@@ -188,9 +193,12 @@ class RegisterUI(QWidget):
     def save_doctor_data(self, user_id, specialization, experience, hospital):
         conn = sqlite3.connect('medical_program.db', timeout=10)
         cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO doctors (user_id, specialization, experience, hospital)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, specialization, experience, hospital))
+        cursor.execute('''INSERT INTO doctors (user_id, specialization, experience, hospital)
+                          VALUES (?, ?, ?, ?)''', (user_id, specialization, experience, hospital))
         conn.commit()
         conn.close()
+
+    def open_profile(self, user_id):
+        self.close()
+        self.profile = ProfileWindow(user_id)
+        self.profile.show()

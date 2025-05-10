@@ -1,12 +1,10 @@
 ﻿from PyQt6.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout,
-    QLabel, QFrame, QHBoxLayout, QMessageBox
+    QLabel, QFrame, QHBoxLayout
 )
 from PyQt6.QtGui import QPixmap, QFontDatabase, QFont, QPainter
 from PyQt6.QtCore import Qt
-from login_ui import LoginWindow
-from Alogoritm import handle_button_click, on_db_connection_result, DbConnectionThread
-
+from login_ui import LoginUI  # Переконайтеся, що цей клас імпортований
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -42,15 +40,18 @@ class MainWindow(QWidget):
         self.setLayout(main_layout)
 
     def load_fonts(self):
-        """Завантажує кастомні шрифти."""
+        # Завантаження шрифтів
         wendy_id = QFontDatabase.addApplicationFont("fonts/WendyOne-Regular.ttf")
         marck_id = QFontDatabase.addApplicationFont("fonts/MarckScript-Regular.ttf")
+        
+        if wendy_id == -1 or marck_id == -1:
+            print("Шрифти не були завантажені")
+        
         wendy_font = QFontDatabase.applicationFontFamilies(wendy_id)[0]
         marck_font = QFontDatabase.applicationFontFamilies(marck_id)[0]
         return wendy_font, marck_font
 
     def create_center_frame(self):
-        """Створює центральний фрейм для вмісту."""
         center_frame = QFrame()
         center_frame.setFixedSize(420, 500)
         center_frame.setStyleSheet(""" 
@@ -63,13 +64,12 @@ class MainWindow(QWidget):
         return center_frame
 
     def create_buttons(self, vbox, marck_font):
-        """Створює кнопки для різних дій."""
         button_texts = ["Enter", "Login", "Exit"]
         for text in button_texts:
             btn = QPushButton(text)
             btn.setFixedSize(220, 45)
             btn.setFont(QFont(marck_font, 16))
-            btn.setStyleSheet("""
+            btn.setStyleSheet(""" 
                 QPushButton {
                     background-color: #66BFFF;
                     color: white;
@@ -80,27 +80,23 @@ class MainWindow(QWidget):
                     background-color: #55AAEE;
                 }
             """)
-            # Для кожної кнопки передаємо текст через лямбда-функцію
             btn.clicked.connect(lambda _, t=text: self.handle_button_click(t))
             vbox.addWidget(btn)
 
     def handle_button_click(self, text: str):
-        """Обробка натискання кнопок."""
         if text == "Enter":
-            QMessageBox.information(self, "Info", "Enter pressed (without DB connection).")
+            pass  # Нічого не робити
         elif text == "Exit":
             QApplication.quit()
         elif text == "Login":
-            self.login_window = LoginWindow(self.login_success)
-            self.login_window.show()
+            self.show_login_window()
 
-    def login_success(self, username):
-        """Обробка успішного входу користувача."""
-        print(f"[INFO] User '{username}' successfully logged in.")
-        QMessageBox.information(self, "Login", f"Welcome, {username}!")
+    def show_login_window(self):
+        """Відкриває вікно для авторизації"""
+        self.login_window = LoginUI()  # Передаємо лише LoginUI без self
+        self.login_window.show()
 
     def paintEvent(self, event):
-        """Малює фонове зображення."""
         painter = QPainter(self)
         pixmap = QPixmap(self.background_path).scaled(
             self.size(), Qt.AspectRatioMode.IgnoreAspectRatio,

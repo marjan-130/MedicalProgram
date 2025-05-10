@@ -1,120 +1,100 @@
-﻿from PyQt6.QtWidgets import QWidget, QLineEdit, QPushButton, QVBoxLayout, QLabel
-from PyQt6.QtGui import QFont, QCursor
+﻿import sqlite3
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QFormLayout, QDialog
 from PyQt6.QtCore import Qt
-from login_algorithm import handle_login
-from custom_exceptions import EmptyFieldError, ValidationError
-from register_ui import RegisterUI
+from PyQt6.QtGui import QFont
+import hashlib
+from register_ui import RegisterUI  # імпорт перенесено сюди
+from profile_ui import ProfileWindow
 
-
-class LoginWindow(QWidget):
-    def __init__(self, open_register_callback=None):
+class LoginUI(QWidget):
+    def __init__(self):
         super().__init__()
-        self.setWindowTitle("VitalCore — Вхід")
-        self.setFixedSize(400, 600)
-        self.setStyleSheet("""
-            background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1,
-            stop:0 #0046a3, stop:1 #007bff);
-        """)
-        self.open_register_callback = open_register_callback
+        self.setWindowTitle("Авторизація")
+        self.setFixedSize(400, 400)
+        self.setStyleSheet("background-color: #f0f8ff; font-family: Arial;")
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.setContentsMargins(30, 40, 30, 20)
-
-        title = QLabel("VitalCore")
-        title.setFont(QFont("Arial", 22, QFont.Weight.Bold))
-        title.setStyleSheet("color: white;")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        subtitle = QLabel("Ваше здоров'я — наш пріоритет")
-        subtitle.setFont(QFont("Arial", 10))
-        subtitle.setStyleSheet("color: white;")
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         form = QWidget()
         form.setStyleSheet("background-color: white; border-radius: 15px;")
         form_layout = QVBoxLayout(form)
         form_layout.setContentsMargins(30, 30, 30, 30)
-        form_layout.setSpacing(15)
+        form_layout.setSpacing(20)
 
-        header = QLabel("Вхід до системи")
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title = QLabel("Авторизація")
+        title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        form_layout.addWidget(title)
 
-        self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Ім’я користувача")
-        self.username_input.setFixedHeight(40)
+        self.username_input = self.create_field("Логін")
+        self.password_input = self.create_field("Пароль", is_password=True)
 
-        self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Пароль")
-        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_input.setFixedHeight(40)
-
-        self.login_btn = QPushButton("Увійти")
-        self.login_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.login_btn.setFixedHeight(40)
-        self.login_btn.setStyleSheet("""
-            background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
-            stop:0 #007bff, stop:1 #0062cc);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
-        """)
-        self.login_btn.clicked.connect(self.handle_login)
+        for widget in [self.username_input, self.password_input]:
+            form_layout.addWidget(widget)
 
         self.message_label = QLabel("")
         self.message_label.setStyleSheet("color: red;")
         self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        register_hint = QLabel("Не маєте облікового запису?")
-        register_hint.setFont(QFont("Arial", 10))
-        register_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        register_btn = QPushButton("Зареєструватися")
-        register_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        register_btn.setStyleSheet("""
-            color: #0056b3;
-            background: transparent;
-            border: none;
-            font-weight: bold;
-            text-decoration: underline;
-        """)
-        register_btn.clicked.connect(self.open_register)  # Викликаємо open_register
-
-        form_layout.addWidget(header)
-        form_layout.addWidget(self.username_input)
-        form_layout.addWidget(self.password_input)
-        form_layout.addWidget(self.login_btn)
         form_layout.addWidget(self.message_label)
-        form_layout.addWidget(register_hint)
-        form_layout.addWidget(register_btn)
+
+        login_button = QPushButton("Увійти")
+        login_button.setFixedHeight(45)
+        login_button.setStyleSheet(
+            "background-color: #007bff; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold;"
+        )
+        login_button.clicked.connect(self.login)
+
+        form_layout.addWidget(login_button)
+
+        self.register_button = QPushButton("Я не маю акаунту")
+        self.register_button.setStyleSheet(
+            "background-color: transparent; color: #007bff; font-size: 14px;"
+        )
+        self.register_button.clicked.connect(self.open_register)
+        form_layout.addWidget(self.register_button)
 
         layout.addWidget(form)
         self.setLayout(layout)
 
-    def handle_login(self):
+    def create_field(self, placeholder, is_password=False):
+        field = QLineEdit()
+        field.setPlaceholderText(placeholder)
+        field.setEchoMode(QLineEdit.EchoMode.Password if is_password else QLineEdit.EchoMode.Normal)
+        field.setFixedHeight(40)
+        field.setStyleSheet(
+            "background-color: #f5f5f5; border: 1px solid #ccc; border-radius: 6px; padding-left: 10px; font-size: 14px; color: black;"
+        )
+        return field
+
+    def login(self):
         username = self.username_input.text().strip()
         password = self.password_input.text().strip()
 
-        try:
-            user = handle_login(username, password)
-            self.message_label.setStyleSheet("color: green;")
-            self.message_label.setText(f"Вітаємо, {user[1]}!")  # user[1] — це user_name
-        except (EmptyFieldError, ValidationError) as e:
-            self.message_label.setStyleSheet("color: red;")
-            self.message_label.setText(str(e))
-        except Exception as e:
-            self.message_label.setStyleSheet("color: red;")
-            self.message_label.setText(f"Помилка: {str(e)}")
+        if not username or not password:
+            self.message_label.setText("Будь ласка, введіть логін та пароль.")
+            return
+
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+
+        conn = sqlite3.connect('medical_program.db', timeout=10)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE user_name = ? AND hash_password = ?", (username, password_hash))
+        user = cursor.fetchone()
+
+        if user:
+            self.open_profile(user[0])
+        else:
+            self.message_label.setText("Невірний логін або пароль.")
+
+    def open_profile(self, user_id):
+        self.close()
+        self.profile = ProfileWindow(user_id)  # Вам потрібно імпортувати ProfileWindow
+        self.profile.show()
 
     def open_register(self):
-        # Відкриваємо вікно реєстрації
-        self.register_window = RegisterUI()
-        self.register_window.show()
-        self.close()  # Закриваємо вікно логіну
+        self.close()
+        self.register = RegisterUI()  # Реєстраційне вікно
+        self.register.show()
