@@ -5,6 +5,7 @@
 from PyQt6.QtGui import QPixmap, QFontDatabase, QFont, QPainter
 from PyQt6.QtCore import Qt
 from login_ui import LoginUI  # Переконайтеся, що цей клас імпортований
+from enter_window import EnterWindow 
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -85,7 +86,7 @@ class MainWindow(QWidget):
 
     def handle_button_click(self, text: str):
         if text == "Enter":
-            pass  # Нічого не робити
+           self.show_enter_window()
         elif text == "Exit":
             QApplication.quit()
         elif text == "Login":
@@ -95,6 +96,12 @@ class MainWindow(QWidget):
         """Відкриває вікно для авторизації"""
         self.login_window = LoginUI()  # Передаємо лише LoginUI без self
         self.login_window.show()
+   
+    def show_enter_window(self):
+     """Відкриває вікно панелі здоров'я"""
+     self.enter_window = EnterWindow()
+     self.enter_window.show()
+
 
     def paintEvent(self, event):
         painter = QPainter(self)
