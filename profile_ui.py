@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont, QPixmap, QLinearGradient, QPalette, QColor, QBrush
 from PyQt6.QtCore import Qt
 import sqlite3
+from session import clear_session
 
 class ProfileWindow(QMainWindow):
     def __init__(self, user_id):
@@ -219,14 +220,9 @@ class ProfileWindow(QMainWindow):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if confirm == QMessageBox.StandardButton.Yes:
-            self.clear_session()
+            clear_session(self.user_id)
             self.close()
 
             from main_window import MainWindow
             self.main_window = MainWindow()
             self.main_window.show()
-
-    def clear_session(self):
-        self.user_id = None
-        # Можна додати додаткові дії для очищення сесії
-        print("Session cleared!")

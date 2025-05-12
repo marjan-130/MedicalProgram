@@ -58,6 +58,19 @@ def create_database():
                 )
             ''')
 
+            cursor.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    session_token TEXT NOT NULL UNIQUE,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TEXT,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+                '''
+                )
+
             conn.commit()
             print(f"✅ Базу даних створено: {os.path.abspath(db_path)}")
 
