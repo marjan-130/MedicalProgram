@@ -1,10 +1,11 @@
 ﻿import sqlite3
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QFormLayout, QDialog
+import hashlib
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-import hashlib
-from register_ui import RegisterUI  # імпорт перенесено сюди
-from profile_ui import ProfileWindow
+
+from register_ui import RegisterUI
+from session import create_session, is_session_active, get_session_user_id
 
 class LoginUI(QWidget):
     def __init__(self):
@@ -13,6 +14,12 @@ class LoginUI(QWidget):
         self.setFixedSize(400, 400)
         self.setStyleSheet("background-color: #f0f8ff; font-family: Arial;")
         self.init_ui()
+
+        # 🔐 Автоматичний перехід, якщо активна сесія
+        self.user_id = None
+        if is_session_active():
+            self.user_id = get_session_user_id()
+            self.open_profile(self.user_id)
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -32,8 +39,8 @@ class LoginUI(QWidget):
         self.username_input = self.create_field("Логін")
         self.password_input = self.create_field("Пароль", is_password=True)
 
-        for widget in [self.username_input, self.password_input]:
-            form_layout.addWidget(widget)
+        form_layout.addWidget(self.username_input)
+        form_layout.addWidget(self.password_input)
 
         self.message_label = QLabel("")
         self.message_label.setStyleSheet("color: red;")
@@ -46,7 +53,6 @@ class LoginUI(QWidget):
             "background-color: #007bff; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold;"
         )
         login_button.clicked.connect(self.login)
-
         form_layout.addWidget(login_button)
 
         self.register_button = QPushButton("Я не маю акаунту")
@@ -70,6 +76,11 @@ class LoginUI(QWidget):
         return field
 
     def login(self):
+        # Перевірка на активну сесію
+        if is_session_active():
+            self.message_label.setText("Ви вже увійшли в систему!")
+            return
+
         username = self.username_input.text().strip()
         password = self.password_input.text().strip()
 
@@ -79,22 +90,31 @@ class LoginUI(QWidget):
 
         password_hash = hashlib.sha256(password.encode()).hexdigest()
 
-        conn = sqlite3.connect('medical_program.db', timeout=10)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE user_name = ? AND hash_password = ?", (username, password_hash))
-        user = cursor.fetchone()
+        try:
+            conn = sqlite3.connect('medical_program.db', timeout=10)
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM users WHERE user_name = ? AND hash_password = ?", (username, password_hash))
+            user = cursor.fetchone()
 
-        if user:
-            self.open_profile(user[0])
-        else:
-            self.message_label.setText("Невірний логін або пароль.")
+            if user:
+                # Створення сесії
+                create_session(user[0])  
+                self.open_profile(user[0])
+            else:
+                self.message_label.setText("Невірний логін або пароль.")
+        except sqlite3.DatabaseError as e:
+            self.message_label.setText(f"Помилка підключення до бази даних: {str(e)}")
+        finally:
+            if conn:
+                conn.close()
 
     def open_profile(self, user_id):
+        from profile_ui import ProfileWindow
         self.close()
-        self.profile = ProfileWindow(user_id)  # Вам потрібно імпортувати ProfileWindow
+        self.profile = ProfileWindow(user_id)
         self.profile.show()
 
     def open_register(self):
         self.close()
-        self.register = RegisterUI()  # Реєстраційне вікно
+        self.register = RegisterUI()
         self.register.show()
