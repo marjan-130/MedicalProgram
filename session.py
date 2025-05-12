@@ -11,11 +11,7 @@ def create_session(user_id: int):
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("PRAGMA foreign_keys = ON")
-        
-        # Очистити стару сесію для цього користувача (опціонально)
         cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
-
-        # Генерація унікального токена для сесії (можна використовувати різні методи, залежно від вашого проекту)
         session_token = generate_session_token()
 
         cursor.execute('''

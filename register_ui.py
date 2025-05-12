@@ -1,8 +1,11 @@
 ﻿import sqlite3
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QComboBox, QFormLayout, QDialog
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QComboBox,
+    QFormLayout, QDialog, QCheckBox, QDateEdit
+)
+from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
-from profile_ui import ProfileWindow  # імпорт перенесено сюди
+from profile_ui import ProfileWindow
 import hashlib
 
 class EmptyFieldError(Exception):
@@ -35,15 +38,27 @@ class RegisterUI(QWidget):
         self.username_input = self.create_field("Логін")
         self.password_input = self.create_field("Пароль", is_password=True)
         self.full_name_input = self.create_field("ПІБ")
-        self.birth_date_input = self.create_field("Дата народження")
+
+        self.birth_date_input = QDateEdit()
+        self.birth_date_input.setCalendarPopup(True)
+        self.birth_date_input.setDisplayFormat("yyyy-MM-dd")
+        self.birth_date_input.setDate(QDate.currentDate())
+        self.birth_date_input.setFixedHeight(40)
+        self.birth_date_input.setStyleSheet(
+            "background-color: #f5f5f5; border: 1px solid #ccc; border-radius: 6px; padding-left: 10px; font-size: 14px; color: black;"
+        )
+
         self.gender_input = self.create_combo_box(["Чоловік", "Жінка"])
         self.email_input = self.create_field("Email")
         self.phone_input = self.create_field("Телефон")
         self.role_input = self.create_combo_box(["Пацієнт", "Лікар"])
 
+        self.consent_checkbox = QCheckBox("Я даю дозвіл на обробку персональних даних")
+        self.consent_checkbox.setStyleSheet("font-size: 13px; color: black;")
+
         for widget in [self.username_input, self.password_input, self.full_name_input,
                        self.birth_date_input, self.gender_input, self.email_input,
-                       self.phone_input, self.role_input]:
+                       self.phone_input, self.role_input, self.consent_checkbox]:
             form_layout.addWidget(widget)
 
         self.message_label = QLabel("")
@@ -85,7 +100,7 @@ class RegisterUI(QWidget):
         username = self.username_input.text().strip()
         password = self.password_input.text().strip()
         full_name = self.full_name_input.text().strip()
-        birth_date = self.birth_date_input.text().strip()
+        birth_date = self.birth_date_input.date().toString("yyyy-MM-dd")
         gender = self.gender_input.currentText()
         email = self.email_input.text().strip()
         phone = self.phone_input.text().strip()
@@ -95,14 +110,16 @@ class RegisterUI(QWidget):
             if not all([username, password, full_name, birth_date, gender, email, phone, role]):
                 raise EmptyFieldError("Будь ласка, заповніть усі поля.")
 
-            # Перевіряємо, чи існує вже користувач з таким логіном
+            if not self.consent_checkbox.isChecked():
+                raise EmptyFieldError("Ви повинні дати дозвіл на обробку персональних даних.")
+
             conn = sqlite3.connect('medical_program.db', timeout=10)
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM users WHERE user_name = ?", (username,))
             if cursor.fetchone():
                 raise Exception("Користувач з таким логіном вже існує.")
 
-            password_hash = self.hash_password(password)  # Хешуємо пароль перед збереженням
+            password_hash = self.hash_password(password)
             user_id = self.save_user_data(username, password_hash, full_name, birth_date, gender, email, phone, role)
 
             if role == "пацієнт":
@@ -121,14 +138,12 @@ class RegisterUI(QWidget):
     def save_user_data(self, username, password, full_name, birth_date, gender, email, phone, role):
         conn = sqlite3.connect('medical_program.db', timeout=10)
         cursor = conn.cursor()
-
         cursor.execute('''INSERT INTO users (user_name, hash_password) VALUES (?, ?)''', (username, password))
         cursor.execute('SELECT id FROM users WHERE user_name = ?', (username,))
         user_id = cursor.fetchone()[0]
-
         cursor.execute('''INSERT INTO user_info (user_id, full_name, birth_date, gender, email, phone, role)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)''', (user_id, full_name, birth_date, gender, email, phone, role))
-
+                          VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                       (user_id, full_name, birth_date, gender, email, phone, role))
         conn.commit()
         conn.close()
         return user_id
@@ -162,7 +177,8 @@ class RegisterUI(QWidget):
         cursor = conn.cursor()
         cursor.execute('''UPDATE user_info
                           SET blood_type = ?, chronic_diseases = ?, allergies = ?
-                          WHERE user_id = ?''', (blood_type, chronic_diseases, allergies, user_id))
+                          WHERE user_id = ?''',
+                       (blood_type, chronic_diseases, allergies, user_id))
         conn.commit()
         conn.close()
 
@@ -194,7 +210,8 @@ class RegisterUI(QWidget):
         conn = sqlite3.connect('medical_program.db', timeout=10)
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO doctors (user_id, specialization, experience, hospital)
-                          VALUES (?, ?, ?, ?)''', (user_id, specialization, experience, hospital))
+                          VALUES (?, ?, ?, ?)''',
+                       (user_id, specialization, experience, hospital))
         conn.commit()
         conn.close()
 

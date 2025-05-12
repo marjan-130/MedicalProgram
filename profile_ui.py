@@ -14,6 +14,7 @@ class ProfileWindow(QMainWindow):
         self.user_id = user_id
         self.setWindowTitle("Профіль користувача")
         self.showMaximized()
+        self.edit_mode = False
 
         self.username = ""
         self.fields = {}
@@ -32,7 +33,7 @@ class ProfileWindow(QMainWindow):
         self.layout = QVBoxLayout()
         self.central_widget.setLayout(self.layout)
 
-        # Встановлюємо фон
+        # Фон
         palette = QPalette()
         gradient = QLinearGradient(0, 0, 0, 1000)
         gradient.setColorAt(0.0, QColor("#0d1b2a"))
@@ -57,7 +58,6 @@ class ProfileWindow(QMainWindow):
         self.top_bar.addStretch()
 
         self.edit_button = QPushButton("Edit")
-        self.edit_button.setEnabled(False)
         self.edit_button.setStyleSheet("""
             QPushButton {
                 background-color: #778da9;
@@ -66,6 +66,7 @@ class ProfileWindow(QMainWindow):
                 border-radius: 8px;
             }
         """)
+        self.edit_button.clicked.connect(self.toggle_edit_mode)
         self.top_bar.addWidget(self.edit_button)
 
         self.avatar_label = QLabel()
@@ -121,7 +122,6 @@ class ProfileWindow(QMainWindow):
                 padding: 8px;
                 color: black;
             """)
-
             self.labels[key] = label
             self.fields[key] = field
 
@@ -149,16 +149,15 @@ class ProfileWindow(QMainWindow):
 
     def toggle_fields_visibility(self, visible_keys):
         for key in self.fields:
-            is_visible = key in visible_keys
-            self.fields[key].setVisible(is_visible)
-            self.labels[key].setVisible(is_visible)
+            visible = key in visible_keys
+            self.fields[key].setVisible(visible)
+            self.labels[key].setVisible(visible)
 
     def load_user_data(self):
         try:
             with sqlite3.connect("medical_program.db") as conn:
                 cursor = conn.cursor()
-
-                cursor.execute(''' 
+                cursor.execute("""
                     SELECT u.user_name, i.full_name, i.birth_date, i.gender, i.email, i.phone, i.role,
                            i.blood_type, i.chronic_diseases, i.allergies,
                            d.specialization, d.experience, d.hospital
@@ -166,7 +165,7 @@ class ProfileWindow(QMainWindow):
                     JOIN user_info i ON u.id = i.user_id
                     LEFT JOIN doctors d ON u.id = d.user_id
                     WHERE u.id = ?
-                ''', (self.user_id,))
+                """, (self.user_id,))
                 data = cursor.fetchone()
 
                 if data:
@@ -206,7 +205,65 @@ class ProfileWindow(QMainWindow):
         except sqlite3.Error as e:
             print(f"Error loading user data: {e}")
 
-    # Перехід назад
+    def toggle_edit_mode(self):
+        if not self.edit_mode:
+            self.edit_mode = True
+            self.edit_button.setText("Save")
+            for key, field in self.fields.items():
+                if key != "role" and field.isVisible():  # Роль не змінюється вручну
+                    field.setReadOnly(False)
+        else:
+            self.edit_mode = False
+            self.edit_button.setText("Edit")
+            self.save_user_data()
+            for field in self.fields.values():
+                field.setReadOnly(True)
+
+    def save_user_data(self):
+        try:
+            with sqlite3.connect("medical_program.db") as conn:
+                cursor = conn.cursor()
+
+                role = self.fields["role"].text()
+                cursor.execute("""
+                    UPDATE user_info
+                    SET full_name = ?, birth_date = ?, gender = ?, phone = ?
+                    WHERE user_id = ?
+                """, (
+                    self.fields["full_name"].text(),
+                    self.fields["birth_date"].text(),
+                    self.fields["gender"].text(),
+                    self.fields["phone"].text(),
+                    self.user_id
+                ))
+
+                if role == "пацієнт":
+                    cursor.execute("""
+                        UPDATE user_info
+                        SET blood_type = ?, chronic_diseases = ?, allergies = ?
+                        WHERE user_id = ?
+                    """, (
+                        self.fields["blood"].text(),
+                        self.fields["chronic"].text(),
+                        self.fields["allergies"].text(),
+                        self.user_id
+                    ))
+                elif role == "лікар":
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO doctors (user_id, specialization, experience, hospital)
+                        VALUES (?, ?, ?, ?)
+                    """, (
+                        self.user_id,
+                        self.fields["specialization"].text(),
+                        self.fields["experience"].text(),
+                        self.fields["hospital"].text()
+                    ))
+
+                conn.commit()
+                QMessageBox.information(self, "Успіх", "Зміни збережено успішно.")
+        except sqlite3.Error as e:
+            QMessageBox.warning(self, "Помилка", f"Не вдалося зберегти зміни: {e}")
+
     def go_to_main_menu(self):
         self.close()
         from main_window import MainWindow
@@ -222,7 +279,10 @@ class ProfileWindow(QMainWindow):
         if confirm == QMessageBox.StandardButton.Yes:
             clear_session(self.user_id)
             self.close()
-
             from main_window import MainWindow
             self.main_window = MainWindow()
             self.main_window.show()
+            from login_window import LoginWindow
+            self.login_window = LoginWindow()
+            self.login_window.show()
+
