@@ -21,6 +21,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="appointment_ui.py" />
     <Compile Include="custom_exceptions.py" />
     <Compile Include="database_setup.py" />
     <Compile Include="enter_window.py" />

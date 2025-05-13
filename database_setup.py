@@ -4,11 +4,6 @@ import sqlite3
 def create_database():
     db_path = 'medical_program.db'
 
-    # Перевірка наявності бази даних
-    if os.path.exists(db_path):
-        print(f"⚠️ База даних вже існує: {os.path.abspath(db_path)}")
-        return
-
     try:
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
@@ -70,6 +65,21 @@ def create_database():
                 )
                 '''
                 )
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS appointments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    patient_id INTEGER NOT NULL,
+                    doctor_id INTEGER NOT NULL,
+                    appointment_date DATE NOT NULL,
+                    appointment_time TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE CASCADE,
+                    UNIQUE(doctor_id, appointment_date, appointment_time)  -- уникаємо дублювань
+                )
+                ''')
+
 
             conn.commit()
             print(f"✅ Базу даних створено: {os.path.abspath(db_path)}")

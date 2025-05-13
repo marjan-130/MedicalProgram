@@ -1,47 +1,32 @@
 ﻿import sqlite3
 import sys
-from datetime import datetime, timedelta
-
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
     QLineEdit, QPushButton, QScrollArea
 )
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
-
-
-def generate_time_slots(day: str) -> list[str]:
-    if day in ["Пн", "Ср", "Пт"]:
-        start = datetime.strptime("09:00", "%H:%M")
-        end = datetime.strptime("13:00", "%H:%M")
-    elif day in ["Вт", "Чт"]:
-        start = datetime.strptime("15:00", "%H:%M")
-        end = datetime.strptime("19:00", "%H:%M")
-    else:
-        return []
-
-    slots = []
-    while start < end:
-        slots.append(start.strftime("%H:%M"))
-        start += timedelta(minutes=20)
-    return slots
+from appointment_ui import AppointmentWidget
 
 
 class DoctorCard(QWidget):
-    def __init__(self, name, specialty, hospital, times, photo_path=None):
+    def __init__(self, name, specialty, hospital, photo_path=None, parent=None):
         super().__init__()
+
+        self.parent_tab = parent  # Зберігаємо об'єкт батьківського класу (DoctorSearchTab)
 
         card_layout = QHBoxLayout()
         card_layout.setContentsMargins(12, 8, 12, 8)
 
+        # Фото лікаря
         photo_label = QLabel()
         pixmap = QPixmap("pictures/default_doctor.png")
         pixmap = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         photo_label.setPixmap(pixmap)
         photo_label.setFixedSize(80, 80)
 
+        # Текстова інформація
         text_layout = QVBoxLayout()
-
         name_label = QLabel(f"<b>{name}</b>")
         specialty_label = QLabel(specialty)
         hospital_label = QLabel(hospital)
@@ -54,43 +39,40 @@ class DoctorCard(QWidget):
         text_layout.addWidget(hospital_label)
         text_layout.setSpacing(4)
 
-        upcoming_dates = self.get_upcoming_dates()
-        dates_label = QLabel("Найближчі дати: " + ", ".join(upcoming_dates))
-        dates_label.setStyleSheet("background: transparent; font-size: 14px; color: #333;")
-
         info_layout = QVBoxLayout()
         info_layout.addLayout(text_layout)
-        info_layout.addWidget(dates_label)
         info_layout.setSpacing(6)
+
+        # Кнопка "Записатись"
+        book_button = QPushButton("Записатись")
+        book_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-size: 16px;
+                padding: 8px 16px;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        book_button.setFixedHeight(40)
+        book_button.setFixedWidth(120)
+        book_button.clicked.connect(lambda: self.parent_tab.book_appointment(name))  # Викликаємо метод через parent_tab
 
         card_layout.addWidget(photo_label)
         card_layout.addLayout(info_layout)
         card_layout.addStretch()
+        card_layout.addWidget(book_button)
 
         self.setLayout(card_layout)
         self.setStyleSheet("""
-            background-color: white;
             border-radius: 14px;
+            background: white;
         """)
         self.setFixedHeight(130)
         self.setMinimumWidth(620)
-
-    def get_upcoming_dates(self):
-        today = datetime.today()
-        dates = []
-        for i in range(1, 10):
-            candidate = today + timedelta(days=i)
-            weekday = candidate.strftime("%a")
-            day_map = {
-                "Mon": "Пн", "Tue": "Вт", "Wed": "Ср",
-                "Thu": "Чт", "Fri": "Пт"
-            }
-            ukr_day = day_map.get(weekday, "")
-            if generate_time_slots(ukr_day):
-                dates.append(candidate.strftime("%d.%m.%Y"))
-            if len(dates) == 2:
-                break
-        return dates
 
 
 class DoctorSearchTab(QWidget):
@@ -110,7 +92,7 @@ class DoctorSearchTab(QWidget):
         """)
 
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(20, 40, 20, 20)  # верхній відступ збільшено
+        main_layout.setContentsMargins(20, 40, 20, 20)
 
         # Пошуковий рядок
         search_layout = QHBoxLayout()
@@ -153,7 +135,7 @@ class DoctorSearchTab(QWidget):
         # Область прокрутки для карток лікарів
         self.doctor_layout = QVBoxLayout()
         scroll_area = QScrollArea()
-        scroll_area.setStyleSheet("background: transparent;")
+        scroll_area.setStyleSheet("background: transparent")
         scroll_widget = QWidget()
         scroll_widget.setLayout(self.doctor_layout)
         scroll_area.setWidget(scroll_widget)
@@ -209,16 +191,12 @@ class DoctorSearchTab(QWidget):
             self.doctor_layout.addWidget(not_found)
             return
 
-        today = datetime.today().strftime("%a")
-        day_map = {
-            "Mon": "Пн", "Tue": "Вт", "Wed": "Ср",
-            "Thu": "Чт", "Fri": "Пт"
-        }
-        ukr_day = day_map.get(today, "")
-
         for doc in doctors:
             name, specialty, hospital = doc
-            times = generate_time_slots(ukr_day)
             photo_path = "default_doctor.png"
-            card = DoctorCard(name, specialty, hospital, times, photo_path)
+            card = DoctorCard(name, specialty, hospital, photo_path, parent=self)  # Передаємо self як parent
             self.doctor_layout.addWidget(card)
+
+    def book_appointment(self, doctor_name):
+        self.appointment_window = AppointmentWidget(doctor_name)
+        self.appointment_window.show()
