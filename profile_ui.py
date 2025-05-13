@@ -286,7 +286,3 @@ class ProfileWindow(QMainWindow):
             from main_window import MainWindow
             self.main_window = MainWindow()
             self.main_window.show()
-            from login_window import LoginWindow
-            self.login_window = LoginWindow()
-            self.login_window.show()
-

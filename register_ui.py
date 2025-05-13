@@ -209,10 +209,17 @@ class RegisterUI(QWidget):
     def save_doctor_data(self, user_id, specialization, experience, hospital):
         conn = sqlite3.connect('medical_program.db', timeout=10)
         cursor = conn.cursor()
-        cursor.execute('''INSERT INTO doctors (user_id, specialization, experience, hospital)
-                          VALUES (?, ?, ?, ?)''',
-                       (user_id, specialization, experience, hospital))
-        conn.commit()
+
+        cursor.execute('SELECT id FROM user_info WHERE user_id = ?', (user_id,))
+        user_info_id_result = cursor.fetchone()
+
+        if user_info_id_result:
+            user_info_id = user_info_id_result[0]
+            cursor.execute('''INSERT INTO doctors (user_id, user_info_id, specialization, experience, hospital)
+                              VALUES (?, ?, ?, ?, ?)''',
+                           (user_id, user_info_id, specialization, experience, hospital))
+            conn.commit()
+
         conn.close()
 
     def open_profile(self, user_id):
