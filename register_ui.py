@@ -1,7 +1,7 @@
 ﻿import sqlite3
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QComboBox,
-    QFormLayout, QDialog, QCheckBox, QDateEdit
+    QFormLayout, QDialog, QCheckBox, QDateEdit, QScrollArea
 )
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
@@ -152,13 +152,13 @@ class RegisterUI(QWidget):
         form = QDialog()
         form_layout = QFormLayout()
 
-        blood_type_input = self.create_field("Група крові")
+        blood_type_input = self.create_combo_box(["A", "B", "AB", "O", "A-", "B-", "AB-", "O-"])
         chronic_diseases_input = self.create_field("Хронічні захворювання")
         allergies_input = self.create_field("Алергії")
 
         save_button = QPushButton("Зберегти")
         save_button.clicked.connect(lambda: (
-            self.save_patient_data(user_id, blood_type_input.text(), chronic_diseases_input.text(), allergies_input.text()),
+            self.save_patient_data(user_id, blood_type_input.currentText(), chronic_diseases_input.text(), allergies_input.text()),
             form.accept(),
             self.open_profile(user_id)
         ))
@@ -186,13 +186,18 @@ class RegisterUI(QWidget):
         form = QDialog()
         form_layout = QFormLayout()
 
-        specialization_input = self.create_field("Спеціалізація")
+        specialization_input = self.create_combo_box([
+            "Терапевт", "Кардіолог", "Педіатр", "Хірург", "Невролог",
+            "Дерматолог", "Гінеколог", "Офтальмолог", "Отоларинголог", "Онколог"
+        ])
+        specialization_input.setMaxVisibleItems(5)  # показувати 5, прокрутка з’явиться, якщо більше
+
         experience_input = self.create_field("Досвід роботи")
         hospital_input = self.create_field("Лікарня")
 
         save_button = QPushButton("Зберегти")
         save_button.clicked.connect(lambda: (
-            self.save_doctor_data(user_id, specialization_input.text(), experience_input.text(), hospital_input.text()),
+            self.save_doctor_data(user_id, specialization_input.currentText(), experience_input.text(), hospital_input.text()),
             form.accept(),
             self.open_profile(user_id)
         ))
