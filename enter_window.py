@@ -7,7 +7,7 @@ class EnterWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("VitalCore - Панель здоров'я")
-        self.setFixedSize(1487, 970)
+        self.showFullScreen()
         self.setStyleSheet("""
             background-color: #021a43; 
             border-radius: 20px;

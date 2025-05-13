@@ -23,6 +23,7 @@
   <ItemGroup>
     <Compile Include="custom_exceptions.py" />
     <Compile Include="database_setup.py" />
+    <Compile Include="enter_window.py" />
     <Compile Include="login_algorithm.py" />
     <Compile Include="MedicalProgram.py" />
     <Compile Include="main_window.py" />
@@ -31,12 +32,12 @@
     <Compile Include="login_ui.py" />
     <Compile Include="profile_ui.py" />
     <Compile Include="register_ui.py" />
+    <Compile Include="search_ui.py" />
     <Compile Include="session.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="database_setup.bd" />
     <Content Include="pictures\backgroundMain.png" />
-    <Content Include="session.json" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="pictures\" />

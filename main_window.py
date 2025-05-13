@@ -8,6 +8,8 @@ from login_ui import LoginUI  # Переконайтеся, що цей клас
 from enter_window import EnterWindow
 from profile_ui import ProfileWindow  # Імпортуємо вікно профілю користувача
 from session import get_session_user_id  # Імпортуємо функцію перевірки сесії
+from search_ui import DoctorSearchTab
+import sqlite3
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -16,6 +18,7 @@ class MainWindow(QWidget):
         self.showFullScreen()
         self.background_path = "pictures/backgroundMain.png"
         self.session_active = False  # Змінна для збереження статусу сесії
+        self.db = sqlite3.connect("medical_program.db")  # Заміни на свій шлях до БД
         self.init_ui()
 
     def init_ui(self):
@@ -68,7 +71,7 @@ class MainWindow(QWidget):
         return center_frame
 
     def create_buttons(self, vbox, marck_font):
-        button_texts = ["Enter", "Login", "Exit"]
+        button_texts = ["Enter", "Login", "Exit", "Search"]
         for text in button_texts:
             btn = QPushButton(text)
             btn.setFixedSize(220, 45)
@@ -90,12 +93,17 @@ class MainWindow(QWidget):
     def handle_button_click(self, text: str):
         if text == "Enter":
             self.show_enter_window()  # Панель здоров'я
+            self.close()
         elif text == "Exit":
             QApplication.quit()  # Вихід з програми
+        elif text == "Search":
+            self.show_search_window()  # Переходимо до вікна пошуку лікарів
+            self.close()
         elif text == "Login":
             user_id = get_session_user_id()
             if user_id:  # Якщо сесія активна
                 self.show_user_profile_window()  # Відкриваємо профіль користувача
+                self.close()
             else:  # Якщо сесія не активна
                 self.show_login_window()  # Відкриваємо форму для логіну
 
@@ -109,6 +117,11 @@ class MainWindow(QWidget):
         self.enter_window = EnterWindow()
         self.enter_window.show()
 
+    def show_search_window(self):
+        """Відкриває вікно пошуку лікарів"""
+        self.search_window = DoctorSearchTab(self.db)  # передаємо об'єкт бази даних
+        self.search_window.show()
+
     def show_user_profile_window(self):
         """Відкриває вікно профілю користувача"""
         user_id = get_session_user_id()  # Отримуємо ID користувача з сесії
@@ -117,7 +130,6 @@ class MainWindow(QWidget):
             self.user_profile_window.show()
         else:
             print("Сесія неактивна. Не вдалося відкрити профіль.")
-
 
     def paintEvent(self, event):
         painter = QPainter(self)

@@ -157,14 +157,14 @@ class ProfileWindow(QMainWindow):
         try:
             with sqlite3.connect("medical_program.db") as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(""" 
                     SELECT u.user_name, i.full_name, i.birth_date, i.gender, i.email, i.phone, i.role,
                            i.blood_type, i.chronic_diseases, i.allergies,
                            d.specialization, d.experience, d.hospital
                     FROM users u
                     JOIN user_info i ON u.id = i.user_id
                     LEFT JOIN doctors d ON u.id = d.user_id
-                    WHERE u.id = ?
+                    WHERE u.id = ? 
                 """, (self.user_id,))
                 data = cursor.fetchone()
 
@@ -183,6 +183,10 @@ class ProfileWindow(QMainWindow):
                     self.fields["birth_date"].setText(birth_date or "")
                     self.fields["phone"].setText(phone or "")
                     self.fields["role"].setText(role or "")
+
+                    # Встановлюємо аватарку залежно від статі
+                    avatar_path = "pictures/Woman_icon.jpg" if gender == "Жіноча" else "pictures/Men_icon.jpg"
+                    self.avatar_label.setPixmap(QPixmap(avatar_path).scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
 
                     if role == "пацієнт":
                         self.fields["blood"].setText(blood or "")
