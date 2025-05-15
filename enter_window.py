@@ -3,6 +3,9 @@
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import Qt, QSize
 import os
+from PyQt6.QtWidgets import QCalendarWidget,QMessageBox, QLineEdit, QDialog, QFormLayout, QComboBox, QTimeEdit, QSpinBox
+from PyQt6.QtCore import QDate, Qt
+import sqlite3
 
 class ContentArea(QScrollArea):
     def __init__(self, parent=None):
@@ -213,47 +216,46 @@ class ContentArea(QScrollArea):
         self.content_layout.addWidget(visits_container)
     
     def _setup_calendar_section(self):
-        # Створюємо контейнер для календаря
-        calendar_container = QFrame()
-        calendar_container.setStyleSheet("""
-            background-color: #0a285c;
-            border-radius: 15px;
-        """)
-        calendar_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        
-        calendar_layout = QVBoxLayout(calendar_container)
-        calendar_layout.setContentsMargins(25, 20, 25, 20)
-        
-        # Заголовок календаря
-        calendar_header = QHBoxLayout()
-        
-        calendar_title = QLabel("Календар")
-        calendar_title.setStyleSheet("""
-            font-family: 'Inter';
-            font-weight: 700;
-            color: white;
-            font-size: 20px;
-        """)
-        
-        # Іконка календаря
-        calendar_icon = QLabel()
-        calendar_icon.setFixedSize(24, 24)
-        calendar_icon_path = "img/calendar.svg"
-        if os.path.exists(calendar_icon_path):
-            calendar_icon.setPixmap(QIcon(calendar_icon_path).pixmap(QSize(24, 24)))
-        
-        calendar_header.addWidget(calendar_title)
-        calendar_header.addWidget(calendar_icon)
-        calendar_header.addStretch()
-        
-        calendar_layout.addLayout(calendar_header)
-        
-        # Тут буде календар (заповнювач висоти)
-        calendar_placeholder = QFrame()
-        calendar_placeholder.setMinimumHeight(400)
-        calendar_layout.addWidget(calendar_placeholder)
-        
-        self.content_layout.addWidget(calendar_container)
+    # Створюємо контейнер для календаря
+     calendar_container = QFrame()
+     calendar_container.setStyleSheet("""
+        background-color: #0a285c;
+        border-radius: 15px;
+    """)
+     calendar_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+    
+     calendar_layout = QVBoxLayout(calendar_container)
+     calendar_layout.setContentsMargins(25, 20, 25, 20)
+    
+    # Заголовок календаря
+     calendar_header = QHBoxLayout()
+    
+     calendar_title = QLabel("Календар")
+     calendar_title.setStyleSheet("""
+        font-family: 'Inter';
+        font-weight: 700;
+        color: white;
+        font-size: 20px;
+    """)
+    
+    # Іконка календаря
+     calendar_icon = QLabel()
+     calendar_icon.setFixedSize(24, 24)
+     calendar_icon_path = "img/calendar.svg"
+     if os.path.exists(calendar_icon_path):
+         calendar_icon.setPixmap(QIcon(calendar_icon_path).pixmap(QSize(24, 24)))
+    
+     calendar_header.addWidget(calendar_title)
+     calendar_header.addWidget(calendar_icon)
+     calendar_header.addStretch()
+    
+     calendar_layout.addLayout(calendar_header)
+    
+    # Додаємо календар
+     self.calendar_widget = CalendarWidget(self.parent().user_id)
+     calendar_layout.addWidget(self.calendar_widget)
+    
+     self.content_layout.addWidget(calendar_container)
 class NavigationButton(QPushButton):
     def __init__(self, icon_path, text, is_selected=False):
         super().__init__()
@@ -413,9 +415,214 @@ class Sidebar(QFrame):
     def on_nav_clicked(self, text):
         # Обробник кліку по пункту навігації
         print(f"Clicked on: {text}")
+class MedicineDialog(QDialog):
+    def __init__(self, date: QDate, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Додати ліки")
+        self.date = date
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QFormLayout(self)
+
+        self.name_input = QLineEdit()
+        self.name_input.setPlaceholderText("Назва ліків")
+        
+        self.times_per_day = QComboBox()
+        self.times_per_day.addItems(["1 раз на день", "2 рази на день", "3 рази на день", "4 рази на день"])
+        
+        self.duration = QSpinBox()
+        self.duration.setRange(1, 365)
+        self.duration.setSuffix(" днів")
+        
+        self.first_dose = QTimeEdit()
+        self.first_dose.setDisplayFormat("HH:mm")
+        
+        layout.addRow("Назва ліків:", self.name_input)
+        layout.addRow("Кількість прийомів:", self.times_per_day)
+        layout.addRow("Тривалість:", self.duration)
+        layout.addRow("Перший прийом:", self.first_dose)
+        
+        save_btn = QPushButton("Зберегти")
+        save_btn.clicked.connect(self.save_medicine)
+        layout.addRow(save_btn)
+
+    def save_medicine(self):
+        name = self.name_input.text()
+        if not name:
+            QMessageBox.warning(self, "Помилка", "Введіть назву ліків")
+            return
+            
+        times = int(self.times_per_day.currentText().split()[0])
+        duration = self.duration.value()
+        first_dose = self.first_dose.time().toString("HH:mm")
+        
+        try:
+            with sqlite3.connect('medical_program.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO medicines (user_id, name, start_date, times_per_day, 
+                                          duration_days, first_dose_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (self.parent().user_id, name, self.date.toString("yyyy-MM-dd"), 
+                     times, duration, first_dose))
+                conn.commit()
+                
+            QMessageBox.information(self, "Успіх", "Ліки успішно додані")
+            self.accept()
+        except sqlite3.Error as e:
+            QMessageBox.critical(self, "Помилка", f"Не вдалося зберегти: {e}")
+class CalendarWidget(QWidget):
+    def __init__(self, user_id, parent=None):
+        super().__init__(parent)
+        self.user_id = user_id
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Календар
+        self.calendar = QCalendarWidget()
+        self.calendar.setStyleSheet("""
+            QCalendarWidget {
+                background-color: #041e49;
+                color: white;
+            }
+            QCalendarWidget QToolButton {
+                color: white;
+                font-size: 14px;
+            }
+            QCalendarWidget QMenu {
+                background-color: #041e49;
+                color: white;
+            }
+        """)
+        self.calendar.setGridVisible(True)
+        self.calendar.clicked.connect(self.on_date_selected)
+        
+        # Інформаційна панель
+        self.info_panel = QWidget()
+        self.info_panel.setStyleSheet("""
+            background-color: #0a285c;
+            border-radius: 15px;
+            padding: 15px;
+        """)
+        info_layout = QVBoxLayout(self.info_panel)
+        
+        self.date_label = QLabel()
+        self.date_label.setStyleSheet("""
+            font-family: 'Inter';
+            font-weight: 700;
+            color: white;
+            font-size: 20px;
+        """)
+        
+        self.events_label = QLabel("Події:")
+        self.events_label.setStyleSheet("""
+            font-family: 'Inter';
+            font-weight: 600;
+            color: white;
+            font-size: 16px;
+            margin-top: 20px;
+        """)
+        
+        self.events_list = QVBoxLayout()
+        self.events_list.setSpacing(10)
+        
+        add_medicine_btn = QPushButton("Додати ліки")
+        add_medicine_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #66BFFF;
+                color: white;
+                border-radius: 8px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #55AAEE;
+            }
+        """)
+        add_medicine_btn.clicked.connect(self.add_medicine)
+        
+        info_layout.addWidget(self.date_label)
+        info_layout.addWidget(self.events_label)
+        info_layout.addLayout(self.events_list)
+        info_layout.addWidget(add_medicine_btn)
+        info_layout.addStretch()
+        
+        layout.addWidget(self.calendar, 2)
+        layout.addWidget(self.info_panel, 1)
+        
+        # Оновлюємо відображення для поточної дати
+        self.on_date_selected(QDate.currentDate())
+
+    def on_date_selected(self, date):
+        self.current_date = date
+        self.date_label.setText(date.toString("dddd, dd MMMM yyyy"))
+        
+        # Очищаємо попередні події
+        while self.events_list.count():
+            item = self.events_list.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        
+        # Завантажуємо події для вибраної дати
+        self.load_events(date)
+
+    def load_events(self, date):
+        date_str = date.toString("yyyy-MM-dd")
+        
+        # Завантажуємо ліки
+        try:
+            with sqlite3.connect('medical_program.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT name, times_per_day, first_dose_time 
+                    FROM medicines 
+                    WHERE user_id = ? AND start_date <= ? 
+                    AND date(?, '+' || duration_days || ' days') >= start_date
+                ''', (self.user_id, date_str, date_str))
+                
+                for name, times, first_dose in cursor.fetchall():
+                    event = QLabel(f"💊 {name} - {times} раз(и) на день, перший прийом о {first_dose}")
+                    event.setStyleSheet("color: #8a94a6; font-size: 14px;")
+                    self.events_list.addWidget(event)
+        except sqlite3.Error as e:
+            print(f"Помилка завантаження ліків: {e}")
+        
+        # Завантажуємо записи до лікаря
+        try:
+            with sqlite3.connect('medical_program.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT a.appointment_time, ui.full_name, d.specialization
+                    FROM appointments a
+                    JOIN doctors d ON a.doctor_id = d.user_id
+                    JOIN user_info ui ON d.user_id = ui.user_id
+                    WHERE a.patient_id = ? AND a.appointment_date = ?
+                ''', (self.user_id, date_str))
+                
+                for time, doctor, specialization in cursor.fetchall():
+                    event = QLabel(f"👨‍⚕️ {time} - {doctor} ({specialization})")
+                    event.setStyleSheet("color: #8a94a6; font-size: 14px;")
+                    self.events_list.addWidget(event)
+        except sqlite3.Error as e:
+            print(f"Помилка завантаження записів: {e}")
+        
+        if self.events_list.count() == 0:
+            no_events = QLabel("Немає подій на цей день")
+            no_events.setStyleSheet("color: #8a94a6; font-style: italic;")
+            self.events_list.addWidget(no_events)
+
+    def add_medicine(self):
+        dialog = MedicineDialog(self.current_date, self)
+        if dialog.exec():
+            self.load_events(self.current_date)
 class EnterWindow(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, user_id=None, parent=None):
+        super().__init__(parent)
+        self.user_id = user_id
         self.setWindowTitle("VitalCore - Панель здоров'я")
         self.showFullScreen()
         self.setStyleSheet("""
