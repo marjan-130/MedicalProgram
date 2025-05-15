@@ -409,9 +409,6 @@ class Sidebar(QFrame):
                 background-color: rgba(10, 40, 92, 0.3);
             }
         """)
-        
-        self.layout.addWidget(exit_button)
-    
     def on_nav_clicked(self, text):
         # Обробник кліку по пункту навігації
         print(f"Clicked on: {text}")
