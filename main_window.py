@@ -115,13 +115,35 @@ class MainWindow(QWidget):
         self.enter_window.show()
 
     def show_search_window(self):
-        user_id = get_session_user_id()  # ОТРИМУЄМО user_id з сесії
-        if user_id is not None:
-            self.search_window = DoctorSearchTab(self.db, user_id)  # Передаємо user_id
-        else:
-            # Якщо user_id немає, можна передати None або обробити інакше
+        user_id = get_session_user_id()  # отримуємо user_id з сесії
+        if user_id is None:
+            # Якщо користувач не залогінений — відкриваємо пошук як є
             self.search_window = DoctorSearchTab(self.db, None)
-        self.search_window.show()
+            self.search_window.show()
+            return
+
+        try:
+            cursor = self.db.cursor()
+            cursor.execute('''
+                SELECT d.id FROM doctors d
+                JOIN user_info ui ON d.user_info_id = ui.id
+                WHERE ui.user_id = ?
+            ''', (user_id,))
+            doctor = cursor.fetchone()
+
+            if doctor:
+                # Якщо користувач — лікар, відкриваємо вікно з пацієнтами
+                from doctor_appointments_window import DoctorAppointmentsWindow  # Імпортуй свій клас вікна з записами
+                self.search_window = DoctorAppointmentsWindow(user_id)
+            else:
+                # Якщо користувач не лікар — відкриваємо пошук лікарів
+                self.search_window = DoctorSearchTab(self.db, user_id)
+
+            self.search_window.show()
+
+        except Exception as e:
+            print(f"Помилка при завантаженні вікна: {e}")
+
 
     def show_user_profile_window(self):
         user_id = get_session_user_id()

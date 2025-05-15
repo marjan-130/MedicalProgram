@@ -24,6 +24,7 @@
     <Compile Include="appointment_ui.py" />
     <Compile Include="custom_exceptions.py" />
     <Compile Include="database_setup.py" />
+    <Compile Include="doctor_appointments_window.py" />
     <Compile Include="enter_window.py" />
     <Compile Include="login_algorithm.py" />
     <Compile Include="MedicalProgram.py" />
