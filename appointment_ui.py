@@ -4,14 +4,15 @@ from PyQt6.QtWidgets import (
     QDateEdit, QPushButton, QMessageBox
 )
 from PyQt6.QtCore import QDate
+import datetime
 
 DB_PATH = 'medical_program.db'
 
 class AppointmentWidget(QWidget):
-    def __init__(self, doctor_name, user_id):  # Додано doctor_name
+    def __init__(self, doctor_name, user_id):
         super().__init__()
-        self.doctor_name = doctor_name  # Зберігаємо ім'я лікаря
-        self.user_id = user_id  # Зберігаємо user_id
+        self.doctor_name = doctor_name
+        self.user_id = user_id
         self.setWindowTitle(f"Запис до лікаря {self.doctor_name}")
 
         self.layout = QVBoxLayout()
@@ -19,7 +20,16 @@ class AppointmentWidget(QWidget):
 
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
-        self.date_edit.setDate(QDate.currentDate())
+        today = QDate.currentDate()
+        self.date_edit.setDate(today)
+
+        # ⛔ Забороняємо минулі дати
+        self.date_edit.setMinimumDate(today)
+
+        # ⛔ Обмеження лише поточним місяцем
+        last_day = QDate(today.year(), today.month(), today.daysInMonth())
+        self.date_edit.setMaximumDate(last_day)
+
         self.layout.addWidget(self.date_edit)
 
         self.time_box = QComboBox()
@@ -34,13 +44,14 @@ class AppointmentWidget(QWidget):
         self.date_edit.dateChanged.connect(self.update_time_slots)
         self.update_time_slots()
 
-    # Тут можна прибрати load_doctors(), doctor_box, бо лікар передається явно
-    # А також поправити book_appointment, щоб використовував self.doctor_name чи інший унікальний ідентифікатор лікаря
-    
     def update_time_slots(self):
         self.time_box.clear()
         date = self.date_edit.date().toPyDate()
         weekday = date.weekday()
+
+        # Тільки будні дні (Пн–Пт)
+        if weekday > 4:
+            return
 
         slots = []
         if weekday in [0, 2, 4]:  # Пн, Ср, Пт
@@ -72,7 +83,6 @@ class AppointmentWidget(QWidget):
             QMessageBox.critical(self, "Помилка", "Сесія недійсна або ви не пацієнт.")
             return
 
-        # Для запису потрібен doctor_id, тому треба отримати його за іменем лікаря
         with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
             cursor.execute('''
@@ -86,7 +96,26 @@ class AppointmentWidget(QWidget):
                 return
             doctor_id = doctor_row[0]
 
-            date_str = self.date_edit.date().toString("yyyy-MM-dd")
+            date_qdate = self.date_edit.date()
+            date_py = date_qdate.toPyDate()
+            today = datetime.date.today()
+
+            # ⛔ Заборонити минулі дати
+            if date_py < today:
+                QMessageBox.warning(self, "Недійсна дата", "Неможливо записатися на минулу дату.")
+                return
+
+            # ⛔ Заборонити запис не на поточний місяць
+            if date_py.month != today.month or date_py.year != today.year:
+                QMessageBox.warning(self, "Недійсна дата", "Запис доступний лише на поточний місяць.")
+                return
+
+            # ⛔ Заборонити запис у вихідні
+            if date_py.weekday() > 4:
+                QMessageBox.warning(self, "Недійсний день", "Запис можливий лише в будні дні.")
+                return
+
+            date_str = date_qdate.toString("yyyy-MM-dd")
             time_str = self.time_box.currentText()
 
             cursor.execute('''
