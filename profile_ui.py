@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont, QPixmap, QLinearGradient, QPalette, QColor, QBrush
 from PyQt6.QtCore import Qt
 import sqlite3
-from session import clear_session
+from session import clear_session  # функція без параметрів
 
 class ProfileWindow(QMainWindow):
     def __init__(self, user_id):
@@ -281,7 +281,7 @@ class ProfileWindow(QMainWindow):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if confirm == QMessageBox.StandardButton.Yes:
-            clear_session(self.user_id)
+            clear_session()  # Ось тут зміна — виклик без аргументів
             self.close()
             from main_window import MainWindow
             self.main_window = MainWindow()

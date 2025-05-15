@@ -1,11 +1,10 @@
-﻿import sqlite3
-import hashlib
+﻿import hashlib
+import sqlite3
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-
+from session import create_session, is_session_active, get_session_token, get_session_user_id
 from register_ui import RegisterUI
-from session import create_session, is_session_active, get_session_user_id
 
 class LoginUI(QWidget):
     def __init__(self):
@@ -15,11 +14,10 @@ class LoginUI(QWidget):
         self.setStyleSheet("background-color: #f0f8ff; font-family: Arial;")
         self.init_ui()
 
-        # 🔐 Автоматичний перехід, якщо активна сесія
-        self.user_id = None
         if is_session_active():
-            self.user_id = get_session_user_id()
-            self.open_profile(self.user_id)
+            user_id = get_session_user_id()
+            if user_id:
+                self.open_profile(user_id)
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -56,9 +54,7 @@ class LoginUI(QWidget):
         form_layout.addWidget(login_button)
 
         self.register_button = QPushButton("Я не маю акаунту")
-        self.register_button.setStyleSheet(
-            "background-color: transparent; color: #007bff; font-size: 14px;"
-        )
+        self.register_button.setStyleSheet("background-color: transparent; color: #007bff; font-size: 14px;")
         self.register_button.clicked.connect(self.open_register)
         form_layout.addWidget(self.register_button)
 
@@ -76,7 +72,6 @@ class LoginUI(QWidget):
         return field
 
     def login(self):
-        # Перевірка на активну сесію
         if is_session_active():
             self.message_label.setText("Ви вже увійшли в систему!")
             return
@@ -91,22 +86,19 @@ class LoginUI(QWidget):
         password_hash = hashlib.sha256(password.encode()).hexdigest()
 
         try:
-            conn = sqlite3.connect('medical_program.db', timeout=10)
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM users WHERE user_name = ? AND hash_password = ?", (username, password_hash))
-            user = cursor.fetchone()
+            with sqlite3.connect('medical_program.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id FROM users WHERE user_name = ? AND hash_password = ?", (username, password_hash))
+                user = cursor.fetchone()
 
-            if user:
-                # Створення сесії
-                create_session(user[0])  
-                self.open_profile(user[0])
-            else:
-                self.message_label.setText("Невірний логін або пароль.")
-        except sqlite3.DatabaseError as e:
-            self.message_label.setText(f"Помилка підключення до бази даних: {str(e)}")
-        finally:
-            if conn:
-                conn.close()
+                if user:
+                    user_id = user[0]
+                    create_session(user_id)
+                    self.open_profile(user_id)
+                else:
+                    self.message_label.setText("Невірний логін або пароль.")
+        except sqlite3.Error as e:
+            self.message_label.setText(f"Помилка БД: {str(e)}")
 
     def open_profile(self, user_id):
         from profile_ui import ProfileWindow

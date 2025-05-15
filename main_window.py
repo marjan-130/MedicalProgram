@@ -4,10 +4,10 @@
 )
 from PyQt6.QtGui import QPixmap, QFontDatabase, QFont, QPainter
 from PyQt6.QtCore import Qt
-from login_ui import LoginUI  # Переконайтеся, що цей клас імпортований
+from login_ui import LoginUI
 from enter_window import EnterWindow
-from profile_ui import ProfileWindow  # Імпортуємо вікно профілю користувача
-from session import get_session_user_id  # Імпортуємо функцію перевірки сесії
+from profile_ui import ProfileWindow
+from session import get_session_user_id
 from search_ui import DoctorSearchTab
 import sqlite3
 
@@ -17,8 +17,8 @@ class MainWindow(QWidget):
         self.setWindowTitle("VitalCore")
         self.showFullScreen()
         self.background_path = "pictures/backgroundMain.png"
-        self.session_active = False  # Змінна для збереження статусу сесії
-        self.db = sqlite3.connect("medical_program.db")  # Заміни на свій шлях до БД
+        self.session_active = False
+        self.db = sqlite3.connect("medical_program.db")
         self.init_ui()
 
     def init_ui(self):
@@ -47,7 +47,6 @@ class MainWindow(QWidget):
         self.setLayout(main_layout)
 
     def load_fonts(self):
-        # Завантаження шрифтів
         wendy_id = QFontDatabase.addApplicationFont("fonts/WendyOne-Regular.ttf")
         marck_id = QFontDatabase.addApplicationFont("fonts/MarckScript-Regular.ttf")
         
@@ -92,41 +91,42 @@ class MainWindow(QWidget):
 
     def handle_button_click(self, text: str):
         if text == "Enter":
-            self.show_enter_window()  # Панель здоров'я
+            self.show_enter_window()
             self.close()
         elif text == "Exit":
-            QApplication.quit()  # Вихід з програми
+            QApplication.quit()
         elif text == "Search":
-            self.show_search_window()  # Переходимо до вікна пошуку лікарів
+            self.show_search_window()
             self.close()
         elif text == "Login":
             user_id = get_session_user_id()
-            if user_id:  # Якщо сесія активна
-                self.show_user_profile_window()  # Відкриваємо профіль користувача
+            if user_id:
+                self.show_user_profile_window()
                 self.close()
-            else:  # Якщо сесія не активна
-                self.show_login_window()  # Відкриваємо форму для логіну
+            else:
+                self.show_login_window()
 
     def show_login_window(self):
-        """Відкриває вікно для авторизації"""
-        self.login_window = LoginUI()  # Передаємо лише LoginUI без self
+        self.login_window = LoginUI()
         self.login_window.show()
 
     def show_enter_window(self):
-        """Відкриває вікно панелі здоров'я"""
         self.enter_window = EnterWindow()
         self.enter_window.show()
 
     def show_search_window(self):
-        """Відкриває вікно пошуку лікарів"""
-        self.search_window = DoctorSearchTab(self.db)  # передаємо об'єкт бази даних
+        user_id = get_session_user_id()  # ОТРИМУЄМО user_id з сесії
+        if user_id is not None:
+            self.search_window = DoctorSearchTab(self.db, user_id)  # Передаємо user_id
+        else:
+            # Якщо user_id немає, можна передати None або обробити інакше
+            self.search_window = DoctorSearchTab(self.db, None)
         self.search_window.show()
 
     def show_user_profile_window(self):
-        """Відкриває вікно профілю користувача"""
-        user_id = get_session_user_id()  # Отримуємо ID користувача з сесії
-        if user_id:  # Перевірка, чи є ID користувача
-            self.user_profile_window = ProfileWindow(user_id)  # Передаємо user_id у конструктор
+        user_id = get_session_user_id()
+        if user_id:
+            self.user_profile_window = ProfileWindow(user_id)
             self.user_profile_window.show()
         else:
             print("Сесія неактивна. Не вдалося відкрити профіль.")

@@ -76,9 +76,10 @@ class DoctorCard(QWidget):
 
 
 class DoctorSearchTab(QWidget):
-    def __init__(self, db):
+    def __init__(self, db, user_id):
         super().__init__()
         self.db = db
+        self.user_id = user_id  # Збереження user_id поточного користувача
         self.showFullScreen()
 
         self.setStyleSheet("""
@@ -194,9 +195,10 @@ class DoctorSearchTab(QWidget):
         for doc in doctors:
             name, specialty, hospital = doc
             photo_path = "default_doctor.png"
-            card = DoctorCard(name, specialty, hospital, photo_path, parent=self)  # Передаємо self як parent
+            card = DoctorCard(name, specialty, hospital, photo_path, parent=self)
             self.doctor_layout.addWidget(card)
 
     def book_appointment(self, doctor_name):
-        self.appointment_window = AppointmentWidget(doctor_name)
+        # Передаємо user_id разом з іменем лікаря в AppointmentWidget
+        self.appointment_window = AppointmentWidget(doctor_name, self.user_id)
         self.appointment_window.show()

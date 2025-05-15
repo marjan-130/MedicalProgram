@@ -1,50 +1,50 @@
 import sqlite3
-from datetime import datetime, timedelta
+import uuid
+import os
 
 DB_PATH = 'medical_program.db'
-SESSION_DURATION = timedelta(hours=24)
+SESSION_FILE = 'session.txt'
 
-def create_session(user_id: int):
-    created_at = datetime.now()
-    expires_at = created_at + SESSION_DURATION
-
+def create_session(user_id):
+    session_token = str(uuid.uuid4())
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
-        cursor.execute("PRAGMA foreign_keys = ON")
-        cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
-        session_token = generate_session_token()
-
-        cursor.execute('''
-            INSERT INTO sessions (user_id, session_token, created_at, expires_at)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, session_token, created_at.isoformat(), expires_at.isoformat()))
+        cursor.execute(
+            "INSERT INTO sessions (user_id, session_token) VALUES (?, ?)",
+            (user_id, session_token)
+        )
         conn.commit()
 
-def generate_session_token():
-    return str(datetime.now().timestamp())
+    with open(SESSION_FILE, "w") as f:
+        f.write(session_token)
 
-def get_session_user_id():
-    now = datetime.now().isoformat()
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT user_id FROM sessions
-            WHERE expires_at > ?
-            ORDER BY created_at DESC
-            LIMIT 1
-        ''', (now,))
-        row = cursor.fetchone()
-        return row[0] if row else None
+    return session_token
 
 def is_session_active():
-    return get_session_user_id() is not None
+    if not os.path.exists(SESSION_FILE):
+        return False
+    with open(SESSION_FILE, "r") as f:
+        token = f.read().strip()
+    return bool(token)
 
-def clear_session(user_id: int):
+def get_session_token():
+    if not os.path.exists(SESSION_FILE):
+        return None
+    with open(SESSION_FILE, "r") as f:
+        return f.read().strip()
+
+def get_session_user_id():
+    token = get_session_token()
+    if not token:
+        return None
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
-        conn.commit()
+        cursor.execute("SELECT user_id FROM sessions WHERE session_token = ?", (token,))
+        result = cursor.fetchone()
+        return result[0] if result else None
 
-def refresh_session(user_id: int):
-    clear_session(user_id)
-    create_session(user_id)
+def clear_session():
+    # Видалити session.txt
+    if os.path.exists(SESSION_FILE):
+        os.remove(SESSION_FILE)
+
