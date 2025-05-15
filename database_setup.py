@@ -80,6 +80,19 @@ def create_database():
                 )
                 ''')
 
+            cursor.execute('''
+               CREATE TABLE IF NOT EXISTS medicines (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  user_id INTEGER NOT NULL,
+                  name TEXT NOT NULL,
+                  start_date DATE NOT NULL,
+                  times_per_day INTEGER NOT NULL,
+                  duration_days INTEGER NOT NULL,
+                  first_dose_time TEXT NOT NULL,
+                  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+''')
+
 
             conn.commit()
             print(f"✅ Базу даних створено: {os.path.abspath(db_path)}")
