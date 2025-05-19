@@ -1,8 +1,10 @@
 ﻿from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
                            QPushButton, QCalendarWidget, QMessageBox)
 from PyQt6.QtCore import QDate, Qt
+from PyQt6.QtGui import QTextCharFormat, QColor
 import sqlite3
 from medicine_dialog import MedicineDialog
+from session import is_session_active, get_session_user_id
 
 class CalendarWidget(QWidget):
     def __init__(self, user_id, parent=None):
@@ -14,7 +16,6 @@ class CalendarWidget(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Календар
         self.calendar = QCalendarWidget()
         self.calendar.setStyleSheet("""
             QCalendarWidget {
@@ -33,7 +34,6 @@ class CalendarWidget(QWidget):
         self.calendar.setGridVisible(True)
         self.calendar.clicked.connect(self.on_date_selected)
         
-        # Інформаційна панель
         self.info_panel = QWidget()
         self.info_panel.setStyleSheet("""
             background-color: #0a285c;
@@ -41,7 +41,7 @@ class CalendarWidget(QWidget):
             padding: 15px;
         """)
         info_layout = QVBoxLayout(self.info_panel)
-        
+
         self.date_label = QLabel()
         self.date_label.setStyleSheet("""
             font-family: 'Inter';
@@ -49,7 +49,7 @@ class CalendarWidget(QWidget):
             color: white;
             font-size: 20px;
         """)
-        
+
         self.events_label = QLabel("Події:")
         self.events_label.setStyleSheet("""
             font-family: 'Inter';
@@ -58,10 +58,10 @@ class CalendarWidget(QWidget):
             font-size: 16px;
             margin-top: 20px;
         """)
-        
+
         self.events_list = QVBoxLayout()
         self.events_list.setSpacing(10)
-        
+
         add_medicine_btn = QPushButton("Додати ліки")
         add_medicine_btn.setStyleSheet("""
             QPushButton {
@@ -75,37 +75,66 @@ class CalendarWidget(QWidget):
             }
         """)
         add_medicine_btn.clicked.connect(self.add_medicine)
-        
+
         info_layout.addWidget(self.date_label)
         info_layout.addWidget(self.events_label)
         info_layout.addLayout(self.events_list)
         info_layout.addWidget(add_medicine_btn)
         info_layout.addStretch()
-        
+
         layout.addWidget(self.calendar, 2)
         layout.addWidget(self.info_panel, 1)
-        
-        # Оновлюємо відображення для поточної дати
+
         self.on_date_selected(QDate.currentDate())
+        self.highlight_medicine_days()
+
+    def highlight_medicine_days(self):
+        if not is_session_active():
+            return
+        user_id = get_session_user_id()
+        if not user_id:
+            return
+        
+        try:
+            with sqlite3.connect('medical_program.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT start_date, duration_days 
+                    FROM medicines
+                    WHERE user_id = ?
+                ''', (user_id,))
+                dates = cursor.fetchall()
+
+                fmt = QTextCharFormat()
+                fmt.setBackground(QColor("#FFD966"))  # Світло-жовтий фон
+
+                # Спочатку скидаємо формат для всіх дат
+                self.calendar.setDateTextFormat(QDate(), QTextCharFormat())
+
+                for start_date_str, duration_days in dates:
+                    start_date = QDate.fromString(start_date_str, "yyyy-MM-dd")
+                    for i in range(duration_days):
+                        day = start_date.addDays(i)
+                        self.calendar.setDateTextFormat(day, fmt)
+        except sqlite3.Error as e:
+            print(f"Помилка підсвітки днів ліків: {e}")
 
     def on_date_selected(self, date):
         self.current_date = date
         self.date_label.setText(date.toString("dddd, dd MMMM yyyy"))
-        
-        # Очищаємо попередні події
+
         while self.events_list.count():
             item = self.events_list.takeAt(0)
             widget = item.widget()
             if widget:
                 widget.deleteLater()
-        
-        # Завантажуємо події для вибраної дати
+
         self.load_events(date)
+        self.highlight_medicine_days()
 
     def load_events(self, date):
         date_str = date.toString("yyyy-MM-dd")
-        
-        # Завантажуємо ліки
+
         try:
             with sqlite3.connect('medical_program.db') as conn:
                 cursor = conn.cursor()
@@ -113,17 +142,16 @@ class CalendarWidget(QWidget):
                     SELECT name, times_per_day, first_dose_time 
                     FROM medicines 
                     WHERE user_id = ? AND start_date <= ? 
-                    AND date(?, '+' || duration_days || ' days') >= start_date
+                    AND date(start_date, '+' || duration_days || ' days') >= ?
                 ''', (self.user_id, date_str, date_str))
-                
+
                 for name, times, first_dose in cursor.fetchall():
-                    event = QLabel(f"💊 {name} - {times} раз(и) на день, перший прийом о {first_dose}")
+                    event = QLabel(f"\ud83d\udc8a {name} - {times} раз(и) на день, перший прийом о {first_dose}")
                     event.setStyleSheet("color: #8a94a6; font-size: 14px;")
                     self.events_list.addWidget(event)
         except sqlite3.Error as e:
             print(f"Помилка завантаження ліків: {e}")
-        
-        # Завантажуємо записи до лікаря
+
         try:
             with sqlite3.connect('medical_program.db') as conn:
                 cursor = conn.cursor()
@@ -134,24 +162,29 @@ class CalendarWidget(QWidget):
                     JOIN user_info ui ON d.user_id = ui.user_id
                     WHERE a.patient_id = ? AND a.appointment_date = ?
                 ''', (self.user_id, date_str))
-                
+
                 for time, doctor, specialization in cursor.fetchall():
-                    event = QLabel(f"👨‍⚕️ {time} - {doctor} ({specialization})")
+                    event = QLabel(f"\ud83d\udc68\u200d⚕️ {time} - {doctor} ({specialization})")
                     event.setStyleSheet("color: #8a94a6; font-size: 14px;")
                     self.events_list.addWidget(event)
         except sqlite3.Error as e:
             print(f"Помилка завантаження записів: {e}")
-        
+
         if self.events_list.count() == 0:
             no_events = QLabel("Немає подій на цей день")
             no_events.setStyleSheet("color: #8a94a6; font-style: italic;")
             self.events_list.addWidget(no_events)
 
     def add_medicine(self):
-        if not self.user_id:
+        if not is_session_active():
             QMessageBox.warning(self, "Помилка", "Увійдіть в систему для додавання ліків")
             return
-            
-        dialog = MedicineDialog(self.current_date, self)
+
+        user_id = get_session_user_id()
+        if not user_id:
+            QMessageBox.warning(self, "Помилка", "Сесія недійсна або завершена")
+            return
+
+        dialog = MedicineDialog(date=self.current_date, user_id=user_id, parent=self)
         if dialog.exec():
-            self.update_events()
+            self.on_date_selected(self.current_date)

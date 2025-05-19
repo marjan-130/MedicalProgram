@@ -22,6 +22,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="appointment_ui.py" />
+    <Compile Include="calendar_widget.py" />
+    <Compile Include="content_area.py" />
     <Compile Include="custom_exceptions.py" />
     <Compile Include="database_setup.py" />
     <Compile Include="doctor_appointments_window.py" />
@@ -32,10 +34,12 @@
     <Compile Include="Alogoritm.py" />
     <Compile Include="DataBase.py" />
     <Compile Include="login_ui.py" />
+    <Compile Include="medicine_dialog.py" />
     <Compile Include="profile_ui.py" />
     <Compile Include="register_ui.py" />
     <Compile Include="search_ui.py" />
     <Compile Include="session.py" />
+    <Compile Include="sidebar.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="database_setup.bd" />

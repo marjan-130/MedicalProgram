@@ -4,10 +4,11 @@ from PyQt6.QtCore import QDate
 import sqlite3
 
 class MedicineDialog(QDialog):
-    def __init__(self, date: QDate, parent=None):
+    def __init__(self, date: QDate, user_id: int, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Додати ліки")
         self.date = date
+        self.user_id = user_id  # Передаємо user_id напряму
         self.init_ui()
 
     def init_ui(self):
@@ -52,7 +53,7 @@ class MedicineDialog(QDialog):
                     INSERT INTO medicines (user_id, name, start_date, times_per_day, 
                                           duration_days, first_dose_time)
                     VALUES (?, ?, ?, ?, ?, ?)
-                ''', (self.parent().user_id, name, self.date.toString("yyyy-MM-dd"), 
+                ''', (self.user_id, name, self.date.toString("yyyy-MM-dd"), 
                      times, duration, first_dose))
                 conn.commit()
                 
