@@ -36,8 +36,8 @@ class ProfileWindow(QMainWindow):
         # Фон
         palette = QPalette()
         gradient = QLinearGradient(0, 0, 0, 1000)
-        gradient.setColorAt(0.0, QColor("#0d1b2a"))
-        gradient.setColorAt(1.0, QColor("#1b263b"))
+        gradient.setColorAt(0.0, QColor("#1e3a5f"))  
+        gradient.setColorAt(1.0, QColor("#3a506b"))  
         palette.setBrush(QPalette.ColorRole.Window, QBrush(gradient))
         self.central_widget.setAutoFillBackground(True)
         self.central_widget.setPalette(palette)
@@ -45,14 +45,14 @@ class ProfileWindow(QMainWindow):
         # Верхня панель
         self.top_bar = QHBoxLayout()
         self.welcome_label = QLabel("Welcome, ")
-        self.welcome_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        self.welcome_label.setStyleSheet("color: white;")
+        self.welcome_label.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold)) 
+        self.welcome_label.setStyleSheet("color: #f1faee;")  
         self.top_bar.addWidget(self.welcome_label)
 
         current_date = datetime.now().strftime("%a, %d %B %Y")
         self.date_label = QLabel(current_date)
-        self.date_label.setFont(QFont("Arial", 12))
-        self.date_label.setStyleSheet("color: white; margin-left: 10px;")
+        self.date_label.setFont(QFont("Segoe UI", 12))  
+        self.date_label.setStyleSheet("color: #a8dadc; margin-left: 10px;")  
         self.top_bar.addWidget(self.date_label)
 
         self.top_bar.addStretch()
@@ -60,18 +60,22 @@ class ProfileWindow(QMainWindow):
         self.edit_button = QPushButton("Edit")
         self.edit_button.setStyleSheet("""
             QPushButton {
-                background-color: #778da9;
+                background-color: #4a6fa5;
                 color: white;
                 padding: 6px 12px;
                 border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #375a8c;      
             }
         """)
         self.edit_button.clicked.connect(self.toggle_edit_mode)
         self.top_bar.addWidget(self.edit_button)
 
         self.avatar_label = QLabel()
-        self.avatar_label.setFixedSize(50, 50)
-        self.avatar_label.setPixmap(QPixmap("avatar.png").scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        self.avatar_label.setFixedSize(60, 60)
+        self.avatar_label.setPixmap(QPixmap("avatar.png").scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         self.top_bar.addWidget(self.avatar_label)
 
         self.layout.addLayout(self.top_bar)
@@ -81,15 +85,15 @@ class ProfileWindow(QMainWindow):
         self.profile_section.setSpacing(30)
 
         self.name_label = QLabel("Ім’я Прізвище")
-        self.name_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        self.name_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         self.name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.name_label.setStyleSheet("color: white;")
+        self.name_label.setStyleSheet("color: #f1faee;")
         self.profile_section.addWidget(self.name_label)
 
         self.email_label = QLabel("email@example.com")
-        self.email_label.setFont(QFont("Arial", 12))
+        self.email_label.setFont(QFont("Segoe UI", 12))
         self.email_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.email_label.setStyleSheet("color: white;")
+        self.email_label.setStyleSheet("color: #a8dadc;")
         self.profile_section.addWidget(self.email_label)
 
         self.form_layout = QGridLayout()
@@ -112,15 +116,15 @@ class ProfileWindow(QMainWindow):
 
         for i, (key, placeholder) in enumerate(all_fields.items()):
             label = QLabel(key.capitalize())
-            label.setStyleSheet("color: white;")
+            label.setStyleSheet("color: #f1faee; font-weight: 500;")
             field = QLineEdit()
             field.setPlaceholderText(placeholder)
             field.setReadOnly(True)
             field.setStyleSheet("""
-                background-color: #f2f2f2;
+                background-color: #edf2f4;
                 border-radius: 8px;
                 padding: 8px;
-                color: black;
+                color: #2b2d42;
             """)
             self.labels[key] = label
             self.fields[key] = field
@@ -136,12 +140,12 @@ class ProfileWindow(QMainWindow):
         self.bottom_bar.addStretch()
 
         self.back_button = QPushButton("🔙 Назад у головне меню")
-        self.back_button.setStyleSheet("background-color: #6c757d; color: white; padding: 8px 16px; border-radius: 8px;")
+        self.back_button.setStyleSheet("background-color: #5c677d; color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold;")
         self.back_button.clicked.connect(self.go_to_main_menu)
         self.bottom_bar.addWidget(self.back_button)
 
         self.logout_button = QPushButton("🚪 Вийти з акаунту")
-        self.logout_button.setStyleSheet("background-color: #d62828; color: white; padding: 8px 16px; border-radius: 8px;")
+        self.logout_button.setStyleSheet("background-color: #d62828; color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold;")
         self.logout_button.clicked.connect(self.logout)
         self.bottom_bar.addWidget(self.logout_button)
 
