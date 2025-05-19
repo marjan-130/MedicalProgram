@@ -3,7 +3,9 @@
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, QSize
 import os
+import sqlite3
 from calendar_widget import CalendarWidget
+from session import get_session_user_id
 
 class ContentArea(QScrollArea):
     def __init__(self, parent=None):
@@ -28,26 +30,20 @@ class ContentArea(QScrollArea):
             }
         """)
         
-        # Головний контейнер для контенту
+        self.user_id = getattr(parent, 'user_id', None)
+
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(30, 30, 30, 30)
         self.content_layout.setSpacing(25)
-        
-        # Встановлюємо заголовок
+
         self._setup_header()
-        
-        # Додаємо секцію найближчого візиту
         self._setup_upcoming_visit()
-        
-        # Додаємо секцію календаря (заголовок)
         self._setup_calendar_section()
-        
-        # Встановлюємо віджет для прокрутки
+
         self.setWidget(self.content_widget)
-    
+
     def _setup_header(self):
-        # Заголовок "Панель здоров'я"
         title = QLabel("Панель здоров'я")
         title.setStyleSheet("""
             font-family: 'Inter';
@@ -57,9 +53,8 @@ class ContentArea(QScrollArea):
             margin-bottom: 10px;
         """)
         self.content_layout.addWidget(title)
-    
+
     def _setup_upcoming_visit(self):
-        # Створюємо контейнер для візитів
         visits_container = QFrame()
         visits_container.setStyleSheet("""
             background-color: #0a285c;
@@ -68,11 +63,9 @@ class ContentArea(QScrollArea):
         visits_layout = QVBoxLayout(visits_container)
         visits_layout.setContentsMargins(25, 20, 25, 20)
         visits_layout.setSpacing(15)
-        
-        # Верхня частина з заголовком і кнопкою "Всі візити"
+
         header_layout = QHBoxLayout()
-        
-        # Заголовок "Найближчий візит"
+
         visit_title = QLabel("Найближчий візит")
         visit_title.setStyleSheet("""
             font-family: 'Inter';
@@ -80,8 +73,7 @@ class ContentArea(QScrollArea):
             color: white;
             font-size: 20px;
         """)
-        
-        # Кнопка "Всі візити"
+
         all_visits_btn = QPushButton("Всі візити →")
         all_visits_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         all_visits_btn.setStyleSheet("""
@@ -97,14 +89,13 @@ class ContentArea(QScrollArea):
                 text-decoration: underline;
             }
         """)
-        
+
         header_layout.addWidget(visit_title)
         header_layout.addStretch()
         header_layout.addWidget(all_visits_btn)
-        
+
         visits_layout.addLayout(header_layout)
-        
-        # Карточка візиту
+
         visit_card = QFrame()
         visit_card.setStyleSheet("""
             background-color: #041e49;
@@ -112,29 +103,25 @@ class ContentArea(QScrollArea):
             padding: 15px;
         """)
         visit_card.setMinimumHeight(80)
-        
+
         visit_card_layout = QHBoxLayout(visit_card)
         visit_card_layout.setContentsMargins(15, 15, 15, 15)
         visit_card_layout.setSpacing(10)
-        
-        # Створюємо віджет для аватара
+
         avatar = QLabel()
         avatar.setFixedSize(50, 50)
         avatar.setStyleSheet("""
             background-color: #0a285c;
             border-radius: 25px;
         """)
-        
-        # Додаємо іконку аватара, якщо існує
+
         avatar_path = "img/user.svg"
         if os.path.exists(avatar_path):
             avatar.setPixmap(QIcon(avatar_path).pixmap(QSize(30, 30)))
-        
-        # Інформація про лікаря
+
         doctor_info = QVBoxLayout()
         doctor_info.setSpacing(5)
-        
-        # Секція "ПІБ"
+
         pib_label = QLabel("ПІБ")
         pib_label.setStyleSheet("""
             font-family: 'Inter';
@@ -142,22 +129,21 @@ class ContentArea(QScrollArea):
             color: #8a94a6;
             font-size: 12px;
         """)
-        
-        doctor_name = QLabel("Др. Катерина Мельник")
+
+        doctor_name = QLabel("-")
         doctor_name.setStyleSheet("""
             font-family: 'Inter';
             font-weight: 700;
             color: white;
             font-size: 16px;
         """)
-        
+
         doctor_info.addWidget(pib_label)
         doctor_info.addWidget(doctor_name)
-        
-        # Секція "Спеціалізація"
+
         spec_layout = QVBoxLayout()
         spec_layout.setSpacing(5)
-        
+
         spec_label = QLabel("Спеціалізація")
         spec_label.setStyleSheet("""
             font-family: 'Inter';
@@ -165,22 +151,21 @@ class ContentArea(QScrollArea):
             color: #8a94a6;
             font-size: 12px;
         """)
-        
-        spec_value = QLabel("Кардіолог")
+
+        spec_value = QLabel("-")
         spec_value.setStyleSheet("""
             font-family: 'Inter';
             font-weight: 700;
             color: white;
             font-size: 14px;
         """)
-        
+
         spec_layout.addWidget(spec_label)
         spec_layout.addWidget(spec_value)
-        
-        # Секція "Дата"
+
         date_layout = QVBoxLayout()
         date_layout.setSpacing(5)
-        
+
         date_label = QLabel("Дата")
         date_label.setStyleSheet("""
             font-family: 'Inter';
@@ -190,8 +175,8 @@ class ContentArea(QScrollArea):
             text-align: right;
         """)
         date_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        
-        date_value = QLabel("Сьогодні, 14:30")
+
+        date_value = QLabel("-")
         date_value.setStyleSheet("""
             font-family: 'Inter';
             font-weight: 700;
@@ -200,45 +185,61 @@ class ContentArea(QScrollArea):
             text-align: right;
         """)
         date_value.setAlignment(Qt.AlignmentFlag.AlignRight)
-        
+
         date_layout.addWidget(date_label)
         date_layout.addWidget(date_value)
-        
-        # Додаємо всі елементи до карточки візиту
+
         visit_card_layout.addWidget(avatar)
         visit_card_layout.addLayout(doctor_info, 1)
         visit_card_layout.addLayout(spec_layout, 1)
         visit_card_layout.addLayout(date_layout, 1)
-        
+
         visits_layout.addWidget(visit_card)
         self.content_layout.addWidget(visits_container)
-    
+
+        try:
+            with sqlite3.connect('medical_program.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT a.appointment_date, a.appointment_time, ui.full_name, d.specialization
+                    FROM appointments a
+                    JOIN doctors d ON a.doctor_id = d.user_id
+                    JOIN user_info ui ON d.user_id = ui.user_id
+                    WHERE a.patient_id = ?
+                    ORDER BY a.appointment_date ASC, a.appointment_time ASC
+                    LIMIT 1
+                ''', (self.user_id,))
+
+                result = cursor.fetchone()
+                if result:
+                    appointment_date, time, name, specialization = result
+                    doctor_name.setText(name)
+                    spec_value.setText(specialization)
+                    date_value.setText(f"{appointment_date}, {time}")
+        except sqlite3.Error as e:
+            print(f"Помилка завантаження найближчого візиту: {e}")
+
     def _setup_calendar_section(self):
-    # Створюємо контейнер для календаря
-     calendar_container = QFrame()
-     calendar_container.setStyleSheet("""
-        background-color: #0a285c;
-        border-radius: 15px;
-    """)
-     calendar_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-    
-     calendar_layout = QVBoxLayout(calendar_container)
-     calendar_layout.setContentsMargins(25, 20, 25, 20)
-    
-    # Заголовок календаря
-     calendar_header = QHBoxLayout()
-    
-     calendar_title = QLabel("Календар")
-     calendar_title.setStyleSheet("""
-        font-family: 'Inter';
-        font-weight: 700;
-        color: white;
-        font-size: 20px;
-    """)
-    
-    # Додаємо календар
-     from calendar_widget import CalendarWidget
-     self.calendar_widget = CalendarWidget(getattr(self.parent(), 'user_id', None))
-     calendar_layout.addWidget(self.calendar_widget)
-    
-     self.content_layout.addWidget(calendar_container)
+        calendar_container = QFrame()
+        calendar_container.setStyleSheet("""
+            background-color: #0a285c;
+            border-radius: 15px;
+        """)
+        calendar_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        calendar_layout = QVBoxLayout(calendar_container)
+        calendar_layout.setContentsMargins(25, 20, 25, 20)
+
+        calendar_title = QLabel("Календар")
+        calendar_title.setStyleSheet("""
+            font-family: 'Inter';
+            font-weight: 700;
+            color: white;
+            font-size: 20px;
+        """)
+        calendar_layout.addWidget(calendar_title)
+
+        self.calendar_widget = CalendarWidget(self.user_id)
+        calendar_layout.addWidget(self.calendar_widget)
+
+        self.content_layout.addWidget(calendar_container)

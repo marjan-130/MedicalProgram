@@ -1,4 +1,4 @@
-import sqlite3
+п»їimport sqlite3
 import uuid
 import os
 
@@ -44,7 +44,5 @@ def get_session_user_id():
         return result[0] if result else None
 
 def clear_session():
-    # Видалити session.txt
     if os.path.exists(SESSION_FILE):
         os.remove(SESSION_FILE)
-
