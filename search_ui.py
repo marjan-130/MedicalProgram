@@ -13,19 +13,17 @@ class DoctorCard(QWidget):
     def __init__(self, name, specialty, hospital, photo_path=None, parent=None):
         super().__init__()
 
-        self.parent_tab = parent  # Зберігаємо об'єкт батьківського класу (DoctorSearchTab)
+        self.parent_tab = parent
 
         card_layout = QHBoxLayout()
         card_layout.setContentsMargins(12, 8, 12, 8)
 
-        # Фото лікаря
         photo_label = QLabel()
         pixmap = QPixmap("pictures/default_doctor.png")
         pixmap = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         photo_label.setPixmap(pixmap)
         photo_label.setFixedSize(80, 80)
 
-        # Текстова інформація
         text_layout = QVBoxLayout()
         name_label = QLabel(f"<b>{name}</b>")
         specialty_label = QLabel(specialty)
@@ -43,8 +41,7 @@ class DoctorCard(QWidget):
         info_layout.addLayout(text_layout)
         info_layout.setSpacing(6)
 
-        # Кнопка "Записатись"
-        book_button = QPushButton("Записатись")
+        book_button = QPushButton("\u0417\u0430\u043f\u0438\u0441\u0430\u0442\u0438\u0441\u044c")
         book_button.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
@@ -59,7 +56,7 @@ class DoctorCard(QWidget):
         """)
         book_button.setFixedHeight(40)
         book_button.setFixedWidth(120)
-        book_button.clicked.connect(lambda: self.parent_tab.book_appointment(name))  # Викликаємо метод через parent_tab
+        book_button.clicked.connect(lambda: self.parent_tab.book_appointment(name))
 
         card_layout.addWidget(photo_label)
         card_layout.addLayout(info_layout)
@@ -79,7 +76,7 @@ class DoctorSearchTab(QWidget):
     def __init__(self, db, user_id):
         super().__init__()
         self.db = db
-        self.user_id = user_id  # Збереження user_id поточного користувача
+        self.user_id = user_id
         self.showFullScreen()
 
         self.setStyleSheet("""
@@ -95,27 +92,26 @@ class DoctorSearchTab(QWidget):
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 40, 20, 20)
 
-        # Пошуковий рядок
         search_layout = QHBoxLayout()
 
-        # Кнопка Назад
-        back_button = QPushButton("← Назад")
+        back_button = QPushButton("\u2190 \u041d\u0430\u0437\u0430\u0434")
         back_button.setFixedWidth(100)
         back_button.setStyleSheet("font-size: 16px; padding: 6px 12px;")
+        back_button.clicked.connect(self.go_back_to_main)
 
         self.combo_specialty = QComboBox()
-        self.combo_specialty.addItem("Усі спеціальності")
+        self.combo_specialty.addItem("\u0423\u0441\u0456 \u0441\u043f\u0435\u0446\u0456\u0430\u043b\u044c\u043d\u043e\u0441\u0442\u0456")
         self.combo_specialty.addItems([
-            "Терапевт", "Кардіолог", "Педіатр", "Хірург", "Невролог",
-            "Дерматолог", "Гінеколог", "Офтальмолог", "Отоларинголог", "Онколог"
+            "\u0422\u0435\u0440\u0430\u043f\u0435\u0432\u0442", "\u041a\u0430\u0440\u0434\u0456\u043e\u043b\u043e\u0433", "\u041f\u0435\u0434\u0456\u0430\u0442\u0440", "\u0425\u0456\u0440\u0443\u0440\u0433", "\u041d\u0435\u0432\u0440\u043e\u043b\u043e\u0433",
+            "\u0414\u0435\u0440\u043c\u0430\u0442\u043e\u043b\u043e\u0433", "\u0413\u0456\u043d\u0435\u043a\u043e\u043b\u043e\u0433", "\u041e\u0444\u0442\u0430\u043b\u044c\u043c\u043e\u043b\u043e\u0433", "\u041e\u0442\u043e\u043b\u0430\u0440\u0438\u043d\u0433\u043e\u043b\u043e\u0433", "\u041e\u043d\u043a\u043e\u043b\u043e\u0433"
         ])
         self.combo_specialty.setStyleSheet("font-size: 16px;")
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Введіть прізвище або спеціальність")
+        self.search_input.setPlaceholderText("\u0412\u0432\u0435\u0434\u0456\u0442\u044c \u043f\u0440\u0456\u0437\u0432\u0438\u0449\u0435 \u0430\u0431\u043e \u0441\u043f\u0435\u0446\u0456\u0430\u043b\u044c\u043d\u0456\u0441\u0442\u044c")
         self.search_input.setStyleSheet("font-size: 16px; padding: 6px;")
 
-        search_button = QPushButton("Знайти")
+        search_button = QPushButton("\u0417\u043d\u0430\u0439\u0442\u0438")
         search_button.setStyleSheet("font-size: 16px; padding: 6px 20px;")
         search_button.clicked.connect(self.load_doctors_from_db)
 
@@ -124,8 +120,7 @@ class DoctorSearchTab(QWidget):
         search_layout.addWidget(self.search_input)
         search_layout.addWidget(search_button)
 
-        # Банер
-        banner = QLabel("👨‍⚕️ <b>ЛІКАР</b> — Ми знайдемо для вас ідеального лікаря")
+        banner = QLabel("\ud83d\udc68\u200d\u2695\ufe0f <b>\u041b\u0406\u041a\u0410\u0420</b> \u2014 \u041c\u0438 \u0437\u043d\u0430\u0439\u0434\u0435\u043c\u043e \u0434\u043b\u044f \u0432\u0430\u0441 \u0456\u0434\u0435\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u043b\u0456\u043a\u0430\u0440\u044f")
         banner.setStyleSheet("""
             background-color: #e6f9e6;
             padding: 14px;
@@ -133,7 +128,6 @@ class DoctorSearchTab(QWidget):
             font-size: 20px;
         """)
 
-        # Область прокрутки для карток лікарів
         self.doctor_layout = QVBoxLayout()
         scroll_area = QScrollArea()
         scroll_area.setStyleSheet("background: transparent")
@@ -172,7 +166,7 @@ class DoctorSearchTab(QWidget):
         filters = []
         params = []
 
-        if specialty_filter != "Усі спеціальності":
+        if specialty_filter != "\u0423\u0441\u0456 \u0441\u043f\u0435\u0446\u0456\u0430\u043b\u044c\u043d\u043e\u0441\u0442\u0456":
             filters.append("d.specialization = ?")
             params.append(specialty_filter)
 
@@ -187,7 +181,7 @@ class DoctorSearchTab(QWidget):
         doctors = cursor.fetchall()
 
         if not doctors:
-            not_found = QLabel("Лікарів не знайдено.")
+            not_found = QLabel("\u041b\u0456\u043a\u0430\u0440\u0456\u0432 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e.")
             not_found.setStyleSheet("font-size: 18px; color: white;")
             self.doctor_layout.addWidget(not_found)
             return
@@ -199,6 +193,11 @@ class DoctorSearchTab(QWidget):
             self.doctor_layout.addWidget(card)
 
     def book_appointment(self, doctor_name):
-        # Передаємо user_id разом з іменем лікаря в AppointmentWidget
         self.appointment_window = AppointmentWidget(doctor_name, self.user_id)
         self.appointment_window.show()
+
+    def go_back_to_main(self):
+        from main_window import MainWindow
+        self.main_window = MainWindow()
+        self.main_window.show()
+        self.close()

@@ -96,8 +96,28 @@ class MainWindow(QWidget):
         elif text == "Exit":
             QApplication.quit()
         elif text == "Search":
+            user_id = get_session_user_id()
+            if user_id:
+                try:
+                    cursor = self.db.cursor()
+                    cursor.execute('''
+                        SELECT d.id FROM doctors d
+                        JOIN user_info ui ON d.user_info_id = ui.id
+                        WHERE ui.user_id = ?
+                    ''', (user_id,))
+                    doctor = cursor.fetchone()
+
+                    if doctor:
+                        from doctor_appointments_window import DoctorAppointmentsWindow
+                        self.search_window = DoctorAppointmentsWindow(user_id)
+                        self.search_window.show()
+                        # НЕ закриваємо MainWindow
+                        return
+                except Exception as e:
+                    print(f"Помилка при завантаженні вікна: {e}")
+
             self.show_search_window()
-            self.close()
+            self.close()  # Закриваємо MainWindow тільки для пацієнтів або неавторизованих
         elif text == "Login":
             user_id = get_session_user_id()
             if user_id:
@@ -105,6 +125,7 @@ class MainWindow(QWidget):
                 self.close()
             else:
                 self.show_login_window()
+
 
     def show_login_window(self):
         self.login_window = LoginUI()
