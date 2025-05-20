@@ -1,11 +1,11 @@
-﻿from PyQt6.QtWidgets import (QScrollArea, QWidget, QVBoxLayout, QLabel, 
-                           QFrame, QHBoxLayout, QPushButton, QSizePolicy)
+﻿from PyQt6.QtWidgets import (QScrollArea, QWidget, QVBoxLayout, QLabel,
+                             QFrame, QHBoxLayout, QPushButton, QSizePolicy)
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, QSize
 import os
 import sqlite3
 from calendar_widget import CalendarWidget
-from session import get_session_user_id
+
 
 class ContentArea(QScrollArea):
     def __init__(self, parent=None):
@@ -29,8 +29,8 @@ class ContentArea(QScrollArea):
                 height: 0px;
             }
         """)
-        
-        self.user_id = getattr(parent, 'user_id', None)
+
+        self.users_id = getattr(parent, 'user_id', None)
 
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
@@ -119,105 +119,61 @@ class ContentArea(QScrollArea):
         if os.path.exists(avatar_path):
             avatar.setPixmap(QIcon(avatar_path).pixmap(QSize(30, 30)))
 
-        doctor_info = QVBoxLayout()
-        doctor_info.setSpacing(5)
+        visit_card_layout.addWidget(avatar)
 
-        pib_label = QLabel("ПІБ")
-        pib_label.setStyleSheet("""
-            font-family: 'Inter';
-            font-weight: 600;
-            color: #8a94a6;
-            font-size: 12px;
-        """)
-
-        doctor_name = QLabel("-")
-        doctor_name.setStyleSheet("""
+        # Текст найближчого візиту в одному QLabel
+        self.visit_info_label = QLabel("-")
+        self.visit_info_label.setStyleSheet("""
             font-family: 'Inter';
             font-weight: 700;
             color: white;
             font-size: 16px;
+            padding-left: 15px;
         """)
-
-        doctor_info.addWidget(pib_label)
-        doctor_info.addWidget(doctor_name)
-
-        spec_layout = QVBoxLayout()
-        spec_layout.setSpacing(5)
-
-        spec_label = QLabel("Спеціалізація")
-        spec_label.setStyleSheet("""
-            font-family: 'Inter';
-            font-weight: 600;
-            color: #8a94a6;
-            font-size: 12px;
-        """)
-
-        spec_value = QLabel("-")
-        spec_value.setStyleSheet("""
-            font-family: 'Inter';
-            font-weight: 700;
-            color: white;
-            font-size: 14px;
-        """)
-
-        spec_layout.addWidget(spec_label)
-        spec_layout.addWidget(spec_value)
-
-        date_layout = QVBoxLayout()
-        date_layout.setSpacing(5)
-
-        date_label = QLabel("Дата")
-        date_label.setStyleSheet("""
-            font-family: 'Inter';
-            font-weight: 600;
-            color: #8a94a6;
-            font-size: 12px;
-            text-align: right;
-        """)
-        date_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-
-        date_value = QLabel("-")
-        date_value.setStyleSheet("""
-            font-family: 'Inter';
-            font-weight: 700;
-            color: white;
-            font-size: 14px;
-            text-align: right;
-        """)
-        date_value.setAlignment(Qt.AlignmentFlag.AlignRight)
-
-        date_layout.addWidget(date_label)
-        date_layout.addWidget(date_value)
-
-        visit_card_layout.addWidget(avatar)
-        visit_card_layout.addLayout(doctor_info, 1)
-        visit_card_layout.addLayout(spec_layout, 1)
-        visit_card_layout.addLayout(date_layout, 1)
+        self.visit_info_label.setWordWrap(True)
+        visit_card_layout.addWidget(self.visit_info_label)
 
         visits_layout.addWidget(visit_card)
         self.content_layout.addWidget(visits_container)
 
+        if not self.users_id:
+            print("User ID (users.id) не встановлено")
+            return
+
         try:
             with sqlite3.connect('medical_program.db') as conn:
                 cursor = conn.cursor()
+
+                cursor.execute("SELECT id FROM user_info WHERE user_id = ?", (self.users_id,))
+                user_info_row = cursor.fetchone()
+                if not user_info_row:
+                    print("Не знайдено user_info для user_id =", self.users_id)
+                    return
+                user_info_id = user_info_row[0]
+
                 cursor.execute('''
-                    SELECT a.appointment_date, a.appointment_time, ui.full_name, d.specialization
+                    SELECT ui.full_name, d.specialization, a.appointment_date, a.appointment_time
                     FROM appointments a
-                    JOIN doctors d ON a.doctor_id = d.user_id
-                    JOIN user_info ui ON d.user_id = ui.user_id
+                    JOIN doctors d ON a.doctor_id = d.id
+                    JOIN user_info ui ON d.user_info_id = ui.id
                     WHERE a.patient_id = ?
+                    AND date(a.appointment_date) >= date('now')
                     ORDER BY a.appointment_date ASC, a.appointment_time ASC
                     LIMIT 1
-                ''', (self.user_id,))
+                ''', (user_info_id,))
 
                 result = cursor.fetchone()
                 if result:
-                    appointment_date, time, name, specialization = result
-                    doctor_name.setText(name)
-                    spec_value.setText(specialization)
-                    date_value.setText(f"{appointment_date}, {time}")
+                    name, specialization, appointment_date, appointment_time = result
+                    self.visit_info_label.setText(
+                        f"{name} – {specialization} – {appointment_date}, {appointment_time}"
+                    )
+                else:
+                    self.visit_info_label.setText("Немає запланованих візитів")
+
         except sqlite3.Error as e:
             print(f"Помилка завантаження найближчого візиту: {e}")
+            self.visit_info_label.setText("Помилка завантаження візиту")
 
     def _setup_calendar_section(self):
         calendar_container = QFrame()
@@ -239,7 +195,7 @@ class ContentArea(QScrollArea):
         """)
         calendar_layout.addWidget(calendar_title)
 
-        self.calendar_widget = CalendarWidget(self.user_id)
+        self.calendar_widget = CalendarWidget(self.users_id)
         calendar_layout.addWidget(self.calendar_widget)
 
         self.content_layout.addWidget(calendar_container)

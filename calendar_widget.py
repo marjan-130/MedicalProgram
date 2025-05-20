@@ -1,5 +1,5 @@
 ﻿from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
-                           QPushButton, QCalendarWidget, QMessageBox)
+                             QPushButton, QCalendarWidget, QMessageBox)
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QTextCharFormat, QColor
 import sqlite3
@@ -100,9 +100,9 @@ class CalendarWidget(QWidget):
         layout.addWidget(self.info_panel, 1)
 
         self.on_date_selected(QDate.currentDate())
-        self.highlight_medicine_days()
+        self.highlight_days()
 
-    def highlight_medicine_days(self):
+    def highlight_days(self):
         if not is_session_active():
             return
         user_id = self.user_id or get_session_user_id()
@@ -112,25 +112,61 @@ class CalendarWidget(QWidget):
         try:
             with sqlite3.connect('medical_program.db') as conn:
                 cursor = conn.cursor()
+
+                # Отримуємо дати з ліками
                 cursor.execute('''
-                    SELECT start_date, duration_days 
+                    SELECT start_date, duration_days
                     FROM medicines
                     WHERE user_id = ?
                 ''', (user_id,))
-                dates = cursor.fetchall()
+                meds_dates_raw = cursor.fetchall()
 
-                fmt = QTextCharFormat()
-                fmt.setBackground(QColor("#FFD966"))
-
-                self.calendar.setDateTextFormat(QDate(), QTextCharFormat())
-
-                for start_date_str, duration_days in dates:
+                meds_dates = set()
+                for start_date_str, duration_days in meds_dates_raw:
                     start_date = QDate.fromString(start_date_str, "yyyy-MM-dd")
                     for i in range(duration_days):
-                        day = start_date.addDays(i)
-                        self.calendar.setDateTextFormat(day, fmt)
+                        meds_dates.add(start_date.addDays(i))
+
+                # Отримуємо дати з візитами до лікаря
+                cursor.execute('''
+                    SELECT DISTINCT appointment_date
+                    FROM appointments
+                    WHERE patient_id = ?
+                ''', (user_id,))
+                visits_dates_raw = cursor.fetchall()
+
+                visits_dates = set()
+                for (date_str,) in visits_dates_raw:
+                    visits_dates.add(QDate.fromString(date_str, "yyyy-MM-dd"))
+
+                # Очищаємо всі підсвітки
+                self.calendar.setDateTextFormat(QDate(), QTextCharFormat())
+
+                # Формати для підсвітки
+                yellow_fmt = QTextCharFormat()
+                yellow_fmt.setBackground(QColor("#FFD966"))  # жовтий
+
+                green_fmt = QTextCharFormat()
+                green_fmt.setBackground(QColor("#6CCC5A"))  # зелений
+
+                purple_fmt = QTextCharFormat()
+                purple_fmt.setBackground(QColor("#9b59b6"))  # фіолетовий
+
+                # Об'єднуємо всі дати для підсвітки
+                all_dates = meds_dates.union(visits_dates)
+
+                for day in all_dates:
+                    has_meds = day in meds_dates
+                    has_visits = day in visits_dates
+                    if has_meds and has_visits:
+                        self.calendar.setDateTextFormat(day, purple_fmt)
+                    elif has_meds:
+                        self.calendar.setDateTextFormat(day, yellow_fmt)
+                    elif has_visits:
+                        self.calendar.setDateTextFormat(day, green_fmt)
+
         except sqlite3.Error as e:
-            print(f"Помилка підсвітки днів ліків: {e}")
+            print(f"Помилка підсвітки днів: {e}")
 
     def on_date_selected(self, date):
         self.current_date = date
@@ -144,11 +180,13 @@ class CalendarWidget(QWidget):
                     widget.deleteLater()
 
         self.load_events(date)
-        self.highlight_medicine_days()
+        self.highlight_days()
 
     def load_events(self, date):
         date_str = date.toString("yyyy-MM-dd")
-        has_events = False
+
+        meds_found = False
+        visits_found = False
 
         try:
             with sqlite3.connect('medical_program.db') as conn:
@@ -161,12 +199,17 @@ class CalendarWidget(QWidget):
                 ''', (self.user_id, date_str, date_str))
 
                 for name, times, first_dose in cursor.fetchall():
-                    has_events = True
+                    meds_found = True
                     event = QLabel(f"💊 {name} - {times} раз(и) на день, перший прийом о {first_dose}")
                     event.setStyleSheet("color: #8a94a6; font-size: 14px;")
                     self.meds_list.addWidget(event)
         except sqlite3.Error as e:
             print(f"Помилка завантаження ліків: {e}")
+
+        if not meds_found:
+            no_meds = QLabel("Немає ліків на цей день")
+            no_meds.setStyleSheet("color: #8a94a6; font-style: italic;")
+            self.meds_list.addWidget(no_meds)
 
         try:
             with sqlite3.connect('medical_program.db') as conn:
@@ -180,17 +223,17 @@ class CalendarWidget(QWidget):
                 ''', (self.user_id, date_str))
 
                 for time, doctor, specialization in cursor.fetchall():
-                    has_events = True
+                    visits_found = True
                     event = QLabel(f"👨‍⚕️ {time} - {doctor} ({specialization})")
                     event.setStyleSheet("color: #8a94a6; font-size: 14px;")
                     self.visits_list.addWidget(event)
         except sqlite3.Error as e:
             print(f"Помилка завантаження записів: {e}")
 
-        if not has_events:
-            no_events = QLabel("Немає подій на цей день")
-            no_events.setStyleSheet("color: #8a94a6; font-style: italic;")
-            self.meds_list.addWidget(no_events)
+        if not visits_found:
+            no_visits = QLabel("Немає записів до лікаря на цей день")
+            no_visits.setStyleSheet("color: #8a94a6; font-style: italic;")
+            self.visits_list.addWidget(no_visits)
 
     def add_medicine(self):
         if not is_session_active():

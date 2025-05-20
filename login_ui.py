@@ -3,7 +3,7 @@ import sqlite3
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-from session import create_session, is_session_active, get_session_token, get_session_user_id
+from session import create_session, is_session_active, get_session_user_id
 from register_ui import RegisterUI
 
 class LoginUI(QWidget):
@@ -14,10 +14,9 @@ class LoginUI(QWidget):
         self.setStyleSheet("background-color: #f0f8ff; font-family: Arial;")
         self.init_ui()
 
-        if is_session_active():
-            user_id = get_session_user_id()
-            if user_id:
-                self.open_profile(user_id)
+        user_id = get_session_user_id()
+        if user_id:
+            self.open_profile(user_id)
 
     def init_ui(self):
         layout = QVBoxLayout()

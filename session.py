@@ -1,48 +1,105 @@
 ﻿import sqlite3
 import uuid
-import os
+from datetime import datetime, timedelta
 
 DB_PATH = 'medical_program.db'
-SESSION_FILE = 'session.txt'
+
 
 def create_session(user_id):
     session_token = str(uuid.uuid4())
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO sessions (user_id, session_token) VALUES (?, ?)",
-            (user_id, session_token)
-        )
-        conn.commit()
+    created_at = datetime.now()
+    expires_at = created_at + timedelta(hours=24)
 
-    with open(SESSION_FILE, "w") as f:
-        f.write(session_token)
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+            cursor.execute('''
+                INSERT INTO sessions (user_id, session_token, created_at, expires_at)
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, session_token, created_at.isoformat(), expires_at.isoformat()))
+            conn.commit()
+            print(f"✅ Сесію створено для користувача {user_id}")
+    except sqlite3.Error as e:
+        print(f"❌ Помилка створення сесії: {e}")
 
-    return session_token
 
 def is_session_active():
-    if not os.path.exists(SESSION_FILE):
-        return False
-    with open(SESSION_FILE, "r") as f:
-        token = f.read().strip()
-    return bool(token)
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT user_id, expires_at FROM sessions
+                ORDER BY id DESC LIMIT 1
+            ''')
+            session = cursor.fetchone()
 
-def get_session_token():
-    if not os.path.exists(SESSION_FILE):
-        return None
-    with open(SESSION_FILE, "r") as f:
-        return f.read().strip()
+            if session:
+                user_id, expires_at = session
+                # Перевірка, чи expires_at є рядком
+                if isinstance(expires_at, (bytes, bytearray)):
+                    expires_at = expires_at.decode('utf-8')
+                if isinstance(expires_at, str):
+                    if datetime.now() < datetime.fromisoformat(expires_at):
+                        return True
+                    else:
+                        cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+                        conn.commit()
+    except sqlite3.Error as e:
+        print(f"❌ Помилка перевірки сесії: {e}")
+    return False
+
 
 def get_session_user_id():
-    token = get_session_token()
-    if not token:
-        return None
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT user_id FROM sessions WHERE session_token = ?", (token,))
-        result = cursor.fetchone()
-        return result[0] if result else None
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT user_id, expires_at FROM sessions
+                ORDER BY id DESC LIMIT 1
+            ''')
+            session = cursor.fetchone()
+
+            if session:
+                user_id, expires_at = session
+                if isinstance(expires_at, (bytes, bytearray)):
+                    expires_at = expires_at.decode('utf-8')
+                if isinstance(expires_at, str):
+                    if datetime.now() < datetime.fromisoformat(expires_at):
+                        return user_id
+    except sqlite3.Error as e:
+        print(f"❌ Помилка отримання user_id з сесії: {e}")
+    return None
+
+
+def get_session_token():
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT session_token, expires_at FROM sessions
+                ORDER BY id DESC LIMIT 1
+            ''')
+            session = cursor.fetchone()
+
+            if session:
+                token, expires_at = session
+                if isinstance(expires_at, (bytes, bytearray)):
+                    expires_at = expires_at.decode('utf-8')
+                if isinstance(expires_at, str):
+                    if datetime.now() < datetime.fromisoformat(expires_at):
+                        return token
+    except sqlite3.Error as e:
+        print(f"❌ Помилка отримання токена з сесії: {e}")
+    return None
+
 
 def clear_session():
-    if os.path.exists(SESSION_FILE):
-        os.remove(SESSION_FILE)
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM sessions")
+            conn.commit()
+            print("🔒 Сесію завершено.")
+    except sqlite3.Error as e:
+        print(f"❌ Помилка завершення сесії: {e}")
