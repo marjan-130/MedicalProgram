@@ -30,8 +30,6 @@ class ContentArea(QScrollArea):
             }
         """)
 
-        self.users_id = getattr(parent, 'user_id', None)
-
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(30, 30, 30, 30)
@@ -121,7 +119,6 @@ class ContentArea(QScrollArea):
 
         visit_card_layout.addWidget(avatar)
 
-        # Текст найближчого візиту в одному QLabel
         self.visit_info_label = QLabel("-")
         self.visit_info_label.setStyleSheet("""
             font-family: 'Inter';
@@ -136,37 +133,34 @@ class ContentArea(QScrollArea):
         visits_layout.addWidget(visit_card)
         self.content_layout.addWidget(visits_container)
 
-        if not self.users_id:
-            print("User ID (users.id) не встановлено")
-            return
-
+        # Отримуємо user_id безпосередньо з бази
         try:
             with sqlite3.connect('medical_program.db') as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("SELECT id FROM user_info WHERE user_id = ?", (self.users_id,))
-                user_info_row = cursor.fetchone()
-                if not user_info_row:
-                    print("Не знайдено user_info для user_id =", self.users_id)
+                cursor.execute("SELECT user_id FROM user_info LIMIT 1")
+                row = cursor.fetchone()
+                if not row:
+                    self.visit_info_label.setText("Користувач не знайдений")
                     return
-                user_info_id = user_info_row[0]
+                current_user_id = row[0]
 
-                cursor.execute('''
-                    SELECT ui.full_name, d.specialization, a.appointment_date, a.appointment_time
+                cursor.execute("""
+                    SELECT a.appointment_date, a.appointment_time, d.specialization, di.full_name
                     FROM appointments a
                     JOIN doctors d ON a.doctor_id = d.id
-                    JOIN user_info ui ON d.user_info_id = ui.id
-                    WHERE a.patient_id = ?
+                    JOIN user_info di ON d.user_info_id = di.id
+                    WHERE a.patient_id = (SELECT id FROM user_info WHERE user_id = ?)
                     AND date(a.appointment_date) >= date('now')
                     ORDER BY a.appointment_date ASC, a.appointment_time ASC
                     LIMIT 1
-                ''', (user_info_id,))
+                """, (current_user_id,))
 
                 result = cursor.fetchone()
                 if result:
-                    name, specialization, appointment_date, appointment_time = result
+                    appointment_date, appointment_time, specialization, doctor_name = result
                     self.visit_info_label.setText(
-                        f"{name} – {specialization} – {appointment_date}, {appointment_time}"
+                        f"{doctor_name} – {specialization} – {appointment_date}, {appointment_time}"
                     )
                 else:
                     self.visit_info_label.setText("Немає запланованих візитів")
@@ -195,7 +189,7 @@ class ContentArea(QScrollArea):
         """)
         calendar_layout.addWidget(calendar_title)
 
-        self.calendar_widget = CalendarWidget(self.users_id)
+        self.calendar_widget = CalendarWidget()
         calendar_layout.addWidget(self.calendar_widget)
 
         self.content_layout.addWidget(calendar_container)
