@@ -4,11 +4,11 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
     QLineEdit, QPushButton, QScrollArea
 )
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QFont
 from PyQt6.QtCore import Qt
 from appointment_ui import AppointmentWidget
 
-
+import random
 class DoctorCard(QWidget):
     def __init__(self, name, specialty, hospital, photo_path=None, parent=None):
         super().__init__()
@@ -20,14 +20,26 @@ class DoctorCard(QWidget):
 
         photo_label = QLabel()
         pixmap = QPixmap("pictures/default_doctor.png")
-        pixmap = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         photo_label.setPixmap(pixmap)
-        photo_label.setFixedSize(80, 80)
+        photo_label.setFixedSize(100, 100)
 
         text_layout = QVBoxLayout()
         name_label = QLabel(f"<b>{name}</b>")
         specialty_label = QLabel(specialty)
         hospital_label = QLabel(hospital)
+
+        # Рейтинг (випадковий від 3 до 5 зірок)
+        rating_value = random.randint(3, 5)
+        rating_stars = "★" * rating_value + "☆" * (5 - rating_value)
+        
+        rating_layout = QHBoxLayout()
+        rating_label = QLabel("Рейтинг:")
+        rating_stars_label = QLabel(rating_stars)
+        rating_stars_label.setStyleSheet("color: #FFC107; font-size: 16px;")
+
+        rating_layout.addWidget(rating_stars_label)
+        rating_layout.addStretch()
 
         for label in [name_label, specialty_label, hospital_label]:
             label.setStyleSheet("background: transparent; color: black; font-size: 18px;")
@@ -35,6 +47,7 @@ class DoctorCard(QWidget):
         text_layout.addWidget(name_label)
         text_layout.addWidget(specialty_label)
         text_layout.addWidget(hospital_label)
+        text_layout.addLayout(rating_layout)
         text_layout.setSpacing(4)
 
         info_layout = QVBoxLayout()
@@ -122,11 +135,15 @@ class DoctorSearchTab(QWidget):
 
         banner = QLabel("\ud83d\udc68\u200d\u2695\ufe0f <b>\u041b\u0406\u041a\u0410\u0420</b> \u2014 \u041c\u0438 \u0437\u043d\u0430\u0439\u0434\u0435\u043c\u043e \u0434\u043b\u044f \u0432\u0430\u0441 \u0456\u0434\u0435\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u043b\u0456\u043a\u0430\u0440\u044f")
         banner.setStyleSheet("""
-            background-color: #e6f9e6;
-            padding: 14px;
+            background-color: #ffffff;
+            padding: 16px;
             border-radius: 12px;
-            font-size: 20px;
+            font-size: 22px;
+            color: #1976D2;
+            border: none;
+            qproperty-alignment: AlignCenter;
         """)
+        banner.setFont(QFont("Arial", 14, QFont.Weight.Bold))
 
         self.doctor_layout = QVBoxLayout()
         scroll_area = QScrollArea()
