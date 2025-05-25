@@ -21,7 +21,14 @@ class EnterWindow(QWidget):
         main_layout.setSpacing(0)
         
         sidebar = Sidebar(self)
+        sidebar.open_reminders_requested.connect(self.open_reminders)
+
         content_area = ContentArea(self)
-        
+
         main_layout.addWidget(sidebar)
         main_layout.addWidget(content_area)
+
+    def open_reminders(self):
+      from reminder_ui import ReminderWindow  # або правильний шлях
+      self.reminder_window = ReminderWindow()
+      self.reminder_window.show()

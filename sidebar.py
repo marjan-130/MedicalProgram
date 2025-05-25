@@ -1,7 +1,9 @@
 ﻿from PyQt6.QtWidgets import QFrame, QVBoxLayout, QWidget, QHBoxLayout, QPushButton, QLabel
 from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
 import os
+from PyQt6.QtCore import pyqtSignal
+
 
 # Імпортуємо функцію для роботи з сесією
 import session
@@ -53,6 +55,7 @@ class NavigationButton(QPushButton):
         self.layout.addStretch()
 
 class Sidebar(QFrame):
+    open_reminders_requested = pyqtSignal()
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedWidth(300)
@@ -161,6 +164,9 @@ class Sidebar(QFrame):
                 print("Користувач не авторизований, перехід у профіль заборонено.")
         elif text == "Головна":
             self.return_to_main_menu()
+        elif text == "Нагадування":
+            self.open_reminders_requested.emit()
+
         else:
             print(f"Clicked on: {text}")
 
