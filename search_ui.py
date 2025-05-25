@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
     QLineEdit, QPushButton, QScrollArea
 )
-from PyQt6.QtGui import QPixmap, QFont
+from PyQt6.QtGui import QPalette, QBrush, QLinearGradient, QColor, QPixmap, QFont
 from PyQt6.QtCore import Qt
 from appointment_ui import AppointmentWidget
 
@@ -64,7 +64,8 @@ class DoctorCard(QWidget):
                 border-radius: 8px;
             }
             QPushButton:hover {
-                background-color: #45a049;
+                background-color: #a2d2ff;
+                color: black;
             }
         """)
         book_button.setFixedHeight(40)
@@ -92,15 +93,14 @@ class DoctorSearchTab(QWidget):
         self.user_id = user_id
         self.showFullScreen()
 
-        self.setStyleSheet("""
-            QWidget {
-                background: qlineargradient(
-                    x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #0066cc,
-                    stop: 1 #99ccff
-                );
-            }
-        """)
+        palette = QPalette()
+        gradient = QLinearGradient(0, 0, 0, 1)
+        gradient.setCoordinateMode(QLinearGradient.CoordinateMode.ObjectBoundingMode)
+        gradient.setColorAt(0.0, QColor("#a2d2ff"))  # верх
+        gradient.setColorAt(1.0, QColor("#d0f4ff"))  # низ
+        palette.setBrush(QPalette.ColorRole.Window, QBrush(gradient))
+        self.setAutoFillBackground(True)
+        self.setPalette(palette)
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 40, 20, 20)
@@ -109,7 +109,19 @@ class DoctorSearchTab(QWidget):
 
         back_button = QPushButton("\u2190 \u041d\u0430\u0437\u0430\u0434")
         back_button.setFixedWidth(100)
-        back_button.setStyleSheet("font-size: 16px; padding: 6px 12px;")
+        back_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 6px 12px;
+                font-size: 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #a2d2ff;
+                color: black;
+            }
+        """)
         back_button.clicked.connect(self.go_back_to_main)
 
         self.combo_specialty = QComboBox()
@@ -118,14 +130,50 @@ class DoctorSearchTab(QWidget):
             "\u0422\u0435\u0440\u0430\u043f\u0435\u0432\u0442", "\u041a\u0430\u0440\u0434\u0456\u043e\u043b\u043e\u0433", "\u041f\u0435\u0434\u0456\u0430\u0442\u0440", "\u0425\u0456\u0440\u0443\u0440\u0433", "\u041d\u0435\u0432\u0440\u043e\u043b\u043e\u0433",
             "\u0414\u0435\u0440\u043c\u0430\u0442\u043e\u043b\u043e\u0433", "\u0413\u0456\u043d\u0435\u043a\u043e\u043b\u043e\u0433", "\u041e\u0444\u0442\u0430\u043b\u044c\u043c\u043e\u043b\u043e\u0433", "\u041e\u0442\u043e\u043b\u0430\u0440\u0438\u043d\u0433\u043e\u043b\u043e\u0433", "\u041e\u043d\u043a\u043e\u043b\u043e\u0433"
         ])
-        self.combo_specialty.setStyleSheet("font-size: 16px;")
+        self.combo_specialty.setStyleSheet("""
+            QComboBox {
+                background-color: #4CAF50;
+                color: white;
+                font-size: 16px;
+                padding: 4px 8px;
+                border-radius: 6px;
+            }
+            QComboBox:hover {
+                background-color: #a2d2ff;
+                color: black;
+            }
+        """)
 
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("\u0412\u0432\u0435\u0434\u0456\u0442\u044c \u043f\u0440\u0456\u0437\u0432\u0438\u0449\u0435 \u0430\u0431\u043e \u0441\u043f\u0435\u0446\u0456\u0430\u043b\u044c\u043d\u0456\u0441\u0442\u044c")
-        self.search_input.setStyleSheet("font-size: 16px; padding: 6px;")
+        self.search_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #4CAF50;
+                color: white;
+                font-size: 16px;
+                padding: 6px;
+                border-radius: 6px;
+            }
+            QLineEdit:hover {
+                background-color: #a2d2ff;
+                color: black;
+            }
+        """)
 
         search_button = QPushButton("\u0417\u043d\u0430\u0439\u0442\u0438")
-        search_button.setStyleSheet("font-size: 16px; padding: 6px 20px;")
+        search_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 6px 20px;
+                font-size: 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #a2d2ff;
+                color: black;
+            }
+        """)
         search_button.clicked.connect(self.load_doctors_from_db)
 
         search_layout.addWidget(back_button)
