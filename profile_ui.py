@@ -13,7 +13,7 @@ class ProfileWindow(QMainWindow):
         super().__init__()
         self.user_id = user_id
         self.setWindowTitle("Профіль користувача")
-        self.showMaximized()
+        self.setGeometry(100, 100, 1200, 800)
         self.edit_mode = False
 
         self.username = ""
