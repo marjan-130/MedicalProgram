@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont, QPixmap, QLinearGradient, QPalette, QColor, QBrush
 from PyQt6.QtCore import Qt
 import sqlite3
-from session import clear_session  # функція без параметрів
+from session import clear_session 
 
 class ProfileWindow(QMainWindow):
     def __init__(self, user_id):
@@ -215,8 +215,7 @@ class ProfileWindow(QMainWindow):
                     self.fields["phone"].setText(phone or "")
                     self.fields["role"].setText(role or "")
 
-                    # Встановлюємо аватарку залежно від статі
-                    avatar_path = "pictures/Woman_icon.jpg" if gender == "Жіноча" else "pictures/Men_icon.jpg"
+                    avatar_path = "pictures/Woman_icon.jpg" if gender == "Жінка" else "pictures/Men_icon.jpg"
                     self.avatar_label.setPixmap(QPixmap(avatar_path).scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
 
                     if role == "пацієнт":
