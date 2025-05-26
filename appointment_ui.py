@@ -23,10 +23,10 @@ class AppointmentWidget(QWidget):
         today = QDate.currentDate()
         self.date_edit.setDate(today)
 
-        # ⛔ Забороняємо минулі дати
+        # Забороняємо минулі дати
         self.date_edit.setMinimumDate(today)
 
-        # ⛔ Обмеження лише поточним місяцем
+        # Обмеження лише поточним місяцем
         last_day = QDate(today.year(), today.month(), today.daysInMonth())
         self.date_edit.setMaximumDate(last_day)
 
@@ -100,17 +100,17 @@ class AppointmentWidget(QWidget):
             date_py = date_qdate.toPyDate()
             today = datetime.date.today()
 
-            # ⛔ Заборонити минулі дати
+            #  Заборонити минулі дати
             if date_py < today:
                 QMessageBox.warning(self, "Недійсна дата", "Неможливо записатися на минулу дату.")
                 return
 
-            # ⛔ Заборонити запис не на поточний місяць
+            #  Заборонити запис не на поточний місяць
             if date_py.month != today.month or date_py.year != today.year:
                 QMessageBox.warning(self, "Недійсна дата", "Запис доступний лише на поточний місяць.")
                 return
 
-            # ⛔ Заборонити запис у вихідні
+            #  Заборонити запис у вихідні
             if date_py.weekday() > 4:
                 QMessageBox.warning(self, "Недійсний день", "Запис можливий лише в будні дні.")
                 return

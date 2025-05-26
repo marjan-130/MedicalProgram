@@ -8,8 +8,10 @@ from calendar_widget import CalendarWidget
 
 
 class ContentArea(QScrollArea):
-    def __init__(self, parent=None):
+    def __init__(self, user_id=None, parent=None):
         super().__init__(parent)
+        self.user_id = user_id
+
         self.setWidgetResizable(True)
         self.setStyleSheet("""
             QScrollArea { 
@@ -133,19 +135,16 @@ class ContentArea(QScrollArea):
         visits_layout.addWidget(visit_card)
         self.content_layout.addWidget(visits_container)
 
-        # Отримуємо user_id безпосередньо з бази
+        # Якщо user_id передано, отримуємо найближчий візит з бази
+        if self.user_id is None:
+            self.visit_info_label.setText("Користувач не знайдений")
+            return
+
         try:
             with sqlite3.connect('medical_program.db') as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("SELECT user_id FROM user_info LIMIT 1")
-                row = cursor.fetchone()
-                if not row:
-                    self.visit_info_label.setText("Користувач не знайдений")
-                    return
-                current_user_id = row[0]
-
-                cursor.execute("""
+                cursor.execute(""" 
                     SELECT a.appointment_date, a.appointment_time, d.specialization, di.full_name
                     FROM appointments a
                     JOIN doctors d ON a.doctor_id = d.id
@@ -154,7 +153,7 @@ class ContentArea(QScrollArea):
                     AND date(a.appointment_date) >= date('now')
                     ORDER BY a.appointment_date ASC, a.appointment_time ASC
                     LIMIT 1
-                """, (current_user_id,))
+                """, (self.user_id,))
 
                 result = cursor.fetchone()
                 if result:

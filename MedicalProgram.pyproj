@@ -37,6 +37,7 @@
     <Compile Include="medicine_dialog.py" />
     <Compile Include="profile_ui.py" />
     <Compile Include="register_ui.py" />
+    <Compile Include="reminder_ui.py" />
     <Compile Include="search_ui.py" />
     <Compile Include="session.py" />
     <Compile Include="sidebar.py" />

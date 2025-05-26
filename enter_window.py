@@ -23,12 +23,14 @@ class EnterWindow(QWidget):
         sidebar = Sidebar(self)
         sidebar.open_reminders_requested.connect(self.open_reminders)
 
-        content_area = ContentArea(self)
+        # Передаємо user_id у ContentArea
+        content_area = ContentArea(self.user_id)
 
         main_layout.addWidget(sidebar)
         main_layout.addWidget(content_area)
 
     def open_reminders(self):
-      from reminder_ui import ReminderWindow  # або правильний шлях
-      self.reminder_window = ReminderWindow()
-      self.reminder_window.show()
+        from reminder_ui import ReminderWindow
+        print(f"Відкриваємо нагадування для user_id={self.user_id}")  # Переконайся, що тут є user_id
+        self.reminder_window = ReminderWindow(self.user_id)  # Передаємо user_id
+        self.reminder_window.show()

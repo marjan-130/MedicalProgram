@@ -1,14 +1,16 @@
-﻿import sys
+﻿import sqlite3
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QMessageBox, QScrollArea, QFrame
+    QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QMessageBox, QPushButton, QHBoxLayout
 )
 from PyQt6.QtGui import QPixmap, QPalette, QBrush, QLinearGradient, QColor, QFont
 from PyQt6.QtCore import Qt
+from datetime import datetime, timedelta  # ДОДАНО timedelta
+
+DB_PATH = 'medical_program.db'
 
 
 class ReminderCard(QFrame):
-    def __init__(self, icon_path: str, title: str, details: list[str], button_text: str, parent=None):
+    def __init__(self, icon_path, title, details: list[str], button_text, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet("background-color: white; border-radius: 16px;")
@@ -32,7 +34,6 @@ class ReminderCard(QFrame):
             text_layout.addWidget(lbl)
         text_layout.addStretch()
 
-        # Кнопка
         button = QPushButton(button_text)
         button.setFixedSize(120, 40)
         button.setStyleSheet("""
@@ -60,11 +61,14 @@ class ReminderCard(QFrame):
 
 
 class ReminderWindow(QWidget):
-    def __init__(self):
+    def __init__(self, user_id):
         super().__init__()
+        self.user_id = user_id
         self.setWindowTitle("Мої нагадування")
         self.resize(700, 800)
+        self.setup_ui()
 
+    def setup_ui(self):
         # Градієнтний фон
         palette = QPalette()
         grad = QLinearGradient(0, 0, 0, 1)
@@ -92,38 +96,74 @@ class ReminderWindow(QWidget):
         vbox = QVBoxLayout(container)
         vbox.setSpacing(20)
 
-        vbox.addWidget(ReminderCard(
-            icon_path="pictures/doctor_icon.png",
-            title="Прийом до лікаря",
-            details=[
-                "Лікар: Д-р Іван Петренко (Кардіолог)",
-                "Дата: 28 травня 2025",
-                "Час: 15:30"
-            ],
-            button_text="Записатись"
-        ))
-
-        vbox.addWidget(ReminderCard(
-            icon_path="pictures/pill_icon.png",
-            title="Прийом ліків",
-            details=[
-                "Ліки: Амоксицилін",
-                "Дозування: 500 мг",
-                "Час: 09:00, 21:00"
-            ],
-            button_text="Прийняти"
-        ))
-
-        vbox.addWidget(ReminderCard(
-            icon_path="pictures/test_tube_icon.png",
-            title="Готові результати аналізів",
-            details=[
-                "Назва: Загальний аналіз крові",
-                "Статус: Готово"
-            ],
-            button_text="Забрати"
-        ))
+        self.load_appointments(vbox)
+        self.load_medicines(vbox)
 
         vbox.addStretch()
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
+
+    def load_appointments(self, layout):
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT d.specialization, ui.full_name, a.appointment_date, a.appointment_time
+                    FROM appointments a
+                    JOIN doctors d ON a.doctor_id = d.id
+                    JOIN user_info ui ON d.user_info_id = ui.id
+                    WHERE a.patient_id = (
+                        SELECT id FROM user_info WHERE user_id = ?
+                    )
+                    AND date(a.appointment_date) >= date('now')
+                    ORDER BY a.appointment_date ASC
+                ''', (self.user_id,))
+                rows = cursor.fetchall()
+                for spec, doctor_name, date_, time_ in rows:
+                    layout.addWidget(ReminderCard(
+                        icon_path="pictures/doctor_icon.png",
+                        title="Прийом до лікаря",
+                        details=[
+                            f"Лікар: {doctor_name} ({spec})",
+                            f"Дата: {date_}",
+                            f"Час: {time_}"
+                        ],
+                        button_text="Переглянути"
+                    ))
+        except sqlite3.Error as e:
+            print(f"❌ Помилка завантаження прийомів: {e}")
+
+    def load_medicines(self, layout):
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
+                today = datetime.now().date()
+                cursor.execute('''
+                    SELECT name, start_date, times_per_day, duration_days, first_dose_time
+                    FROM medicines
+                    WHERE user_id = ?
+                ''', (self.user_id,))
+                rows = cursor.fetchall()
+                for name, start_date, times_per_day, duration_days, first_time in rows:
+                    start = datetime.fromisoformat(start_date).date()
+                    end = start + timedelta(days=duration_days)
+                    if start <= today <= end:
+                        times = self.calculate_times(first_time, times_per_day)
+                        layout.addWidget(ReminderCard(
+                            icon_path="pictures/pill_icon.png",
+                            title="Прийом ліків",
+                            details=[
+                                f"Ліки: {name}",
+                                f"Дозування: {times_per_day} рази/день",
+                                f"Час: {', '.join(times)}"
+                            ],
+                            button_text="Прийняти"
+                        ))
+        except sqlite3.Error as e:
+            print(f"❌ Помилка завантаження ліків: {e}")
+
+    def calculate_times(self, first_time_str, times_per_day):
+        first_time = datetime.strptime(first_time_str, "%H:%M")
+        interval = 24 // times_per_day
+        times = [(first_time + timedelta(hours=i * interval)).strftime("%H:%M") for i in range(times_per_day)]
+        return times

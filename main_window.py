@@ -132,7 +132,13 @@ class MainWindow(QWidget):
         self.login_window.show()
 
     def show_enter_window(self):
-        self.enter_window = EnterWindow()
+        user_id = get_session_user_id()
+        if user_id is None:
+            print("Користувач не залогінений — неможливо відкрити EnterWindow")
+            self.show_login_window()
+            return
+
+        self.enter_window = EnterWindow(user_id)
         self.enter_window.show()
 
     def show_search_window(self):
