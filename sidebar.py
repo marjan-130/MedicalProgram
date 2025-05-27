@@ -1,13 +1,9 @@
 ﻿from PyQt6.QtWidgets import QFrame, QVBoxLayout, QWidget, QHBoxLayout, QPushButton, QLabel
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QPalette, QBrush, QLinearGradient, QColor
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 import os
-from PyQt6.QtCore import pyqtSignal
-
-
-# Імпортуємо функцію для роботи з сесією
 import session
-from profile_ui import ProfileWindow  # Імпорт вікна профілю
+from profile_ui import ProfileWindow
 
 class NavigationButton(QPushButton):
     def __init__(self, icon_path, text, is_selected=False):
@@ -18,13 +14,14 @@ class NavigationButton(QPushButton):
         if is_selected:
             self.setStyleSheet("""
                 QPushButton {
-                    background-color: #0a285c;
+                    background-color: rgba(255, 255, 255, 0.2);
                     border-radius: 12px;
                     text-align: left;
                     padding-left: 15px;
-                    color: white;
+                    color: #023047;
                     font-weight: 600;
                     font-size: 16px;
+                    font-family: 'Inter';
                 }
             """)
         else:
@@ -34,12 +31,14 @@ class NavigationButton(QPushButton):
                     border-radius: 12px;
                     text-align: left;
                     padding-left: 15px;
-                    color: #8a94a6;
+                    color: #023047;
                     font-weight: 500;
                     font-size: 16px;
+                    font-family: 'Inter';
                 }
                 QPushButton:hover {
-                    background-color: rgba(10, 40, 92, 0.3);
+                    background-color: rgba(255, 255, 255, 0.1);
+                    color: #023047;
                 }
             """)
 
@@ -56,11 +55,12 @@ class NavigationButton(QPushButton):
 
 class Sidebar(QFrame):
     open_reminders_requested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedWidth(300)
-        self.setStyleSheet("background-color: #051e4a;")
-
+        self.setStyleSheet("background: transparent;")
+        
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 20)
         self.layout.setSpacing(0)
@@ -70,16 +70,31 @@ class Sidebar(QFrame):
         self.layout.addStretch()
         self._setup_exit_button()
 
+    def resizeEvent(self, event):
+        # Оновлюємо градієнт при зміні розміру
+        self.update_gradient()
+        super().resizeEvent(event)
+
+    def update_gradient(self):
+        palette = self.palette()
+        gradient = QLinearGradient(0, 0, 0, self.height())
+        gradient.setColorAt(0.0, QColor("#a2d2ff"))  # Темно-синій
+        gradient.setColorAt(1.0, QColor("#d0f4ff"))  # Бірюзовий
+        palette.setBrush(QPalette.ColorRole.Window, QBrush(gradient))
+        self.setPalette(palette)
+        self.setAutoFillBackground(True)
+
     def _setup_header(self):
         header = QWidget()
         header.setFixedHeight(100)
+        header.setStyleSheet("background: transparent;")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(30, 35, 30, 0)
 
         logo = QPushButton()
         logo.setFixedSize(40, 40)
         logo.setStyleSheet("""
-            background-color: #f4f4f4;
+            background-color: rgba(255, 255, 255, 0.2);
             border-radius: 12px;
         """)
 
@@ -91,9 +106,10 @@ class Sidebar(QFrame):
         title = QLabel("VitalCore")
         title.setStyleSheet("""
             font-weight: 700;
-            color: #f4f4f4;
+            color: white;
             font-size: 27px;
             margin-left: 15px;
+            font-family: 'Inter';
         """)
 
         header_layout.addWidget(logo)
@@ -104,6 +120,7 @@ class Sidebar(QFrame):
 
     def _setup_navigation(self):
         nav_container = QWidget()
+        nav_container.setStyleSheet("background: transparent;")
         nav_layout = QVBoxLayout(nav_container)
         nav_layout.setContentsMargins(20, 40, 20, 0)
         nav_layout.setSpacing(10)

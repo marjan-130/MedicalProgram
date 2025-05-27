@@ -1,7 +1,7 @@
 ﻿from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
                              QPushButton, QCalendarWidget, QMessageBox)
 from PyQt6.QtCore import QDate, Qt
-from PyQt6.QtGui import QTextCharFormat, QColor
+from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 import sqlite3
 from medicine_dialog import MedicineDialog
 from session import is_session_active, get_session_user_id
@@ -19,16 +19,25 @@ class CalendarWidget(QWidget):
         self.calendar = QCalendarWidget()
         self.calendar.setStyleSheet("""
             QCalendarWidget {
-                background-color: #041e49;
-                color: white;
+                background-color: white;
+                border-radius: 16px;
+                padding: 15px;
             }
             QCalendarWidget QToolButton {
-                color: white;
+                color: #023047;
                 font-size: 14px;
+                font-weight: 600;
             }
             QCalendarWidget QMenu {
-                background-color: #041e49;
-                color: white;
+                background-color: white;
+                color: #023047;
+            }
+            QCalendarWidget QSpinBox {
+                background-color: white;
+                color: #023047;
+            }
+            QCalendarWidget QWidget { 
+                alternate-background-color: white; 
             }
         """)
         self.calendar.setGridVisible(True)
@@ -36,25 +45,25 @@ class CalendarWidget(QWidget):
         
         self.info_panel = QWidget()
         self.info_panel.setStyleSheet("""
-            background-color: #0a285c;
-            border-radius: 15px;
+            background-color: white;
+            border-radius: 16px;
             padding: 15px;
         """)
         info_layout = QVBoxLayout(self.info_panel)
 
         self.date_label = QLabel()
         self.date_label.setStyleSheet("""
-            font-family: 'Inter';
+            font-family: 'Segoe UI';
             font-weight: 700;
-            color: white;
+            color: #023047;
             font-size: 20px;
         """)
 
         self.meds_label = QLabel("Ліки:")
         self.meds_label.setStyleSheet("""
-            font-family: 'Inter';
+            font-family: 'Segoe UI';
             font-weight: 600;
-            color: white;
+            color: #023047;
             font-size: 16px;
             margin-top: 20px;
         """)
@@ -64,9 +73,9 @@ class CalendarWidget(QWidget):
 
         self.visits_label = QLabel("Записи до лікаря:")
         self.visits_label.setStyleSheet("""
-            font-family: 'Inter';
+            font-family: 'Segoe UI';
             font-weight: 600;
-            color: white;
+            color: #023047;
             font-size: 16px;
             margin-top: 20px;
         """)
@@ -77,13 +86,14 @@ class CalendarWidget(QWidget):
         add_medicine_btn = QPushButton("Додати ліки")
         add_medicine_btn.setStyleSheet("""
             QPushButton {
-                background-color: #66BFFF;
+                background-color: #4CAF50;
                 color: white;
                 border-radius: 8px;
                 padding: 8px;
+                font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #55AAEE;
+                background-color: #43a047;
             }
         """)
         add_medicine_btn.clicked.connect(self.add_medicine)

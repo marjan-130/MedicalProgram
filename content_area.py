@@ -1,6 +1,6 @@
 ﻿from PyQt6.QtWidgets import (QScrollArea, QWidget, QVBoxLayout, QLabel,
                              QFrame, QHBoxLayout, QPushButton, QSizePolicy)
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QFont, QPalette, QBrush, QLinearGradient, QColor
 from PyQt6.QtCore import Qt, QSize
 import os
 import sqlite3
@@ -16,15 +16,15 @@ class ContentArea(QScrollArea):
         self.setStyleSheet("""
             QScrollArea { 
                 border: none; 
-                background-color: #021a43;
+                background: transparent;
             }
             QScrollBar:vertical { 
                 width: 8px; 
-                background: #051e4a;
+                background: rgba(2, 48, 71, 0.1);
                 border-radius: 4px;
             }
             QScrollBar::handle:vertical {
-                background: #0a285c;
+                background: rgba(2, 48, 71, 0.3);
                 border-radius: 4px;
             }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
@@ -33,6 +33,7 @@ class ContentArea(QScrollArea):
         """)
 
         self.content_widget = QWidget()
+        self.content_widget.setStyleSheet("background: transparent;")
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(30, 30, 30, 30)
         self.content_layout.setSpacing(25)
@@ -43,12 +44,26 @@ class ContentArea(QScrollArea):
 
         self.setWidget(self.content_widget)
 
+    def resizeEvent(self, event):
+        # Оновлюємо градієнт при зміні розміру
+        self.update_gradient()
+        super().resizeEvent(event)
+
+    def update_gradient(self):
+        palette = self.palette()
+        gradient = QLinearGradient(0, 0, 0, self.height())
+        gradient.setColorAt(0.0, QColor("#a2d2ff"))  # Дуже світлий блакитний
+        gradient.setColorAt(1.0, QColor("#d0f4ff"))  # Трохи темніший блакитний
+        palette.setBrush(QPalette.ColorRole.Window, QBrush(gradient))
+        self.setPalette(palette)
+        self.setAutoFillBackground(True)
+
     def _setup_header(self):
         title = QLabel("Панель здоров'я")
         title.setStyleSheet("""
-            font-family: 'Inter';
+            font-family: 'Segoe UI';
             font-weight: 700;
-            color: white;
+            color: #023047;
             font-size: 28px;
             margin-bottom: 10px;
         """)
@@ -57,20 +72,22 @@ class ContentArea(QScrollArea):
     def _setup_upcoming_visit(self):
         visits_container = QFrame()
         visits_container.setStyleSheet("""
-            background-color: #0a285c;
-            border-radius: 15px;
+            background-color: white;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(2, 48, 71, 0.1);
         """)
         visits_layout = QVBoxLayout(visits_container)
-        visits_layout.setContentsMargins(25, 20, 25, 20)
+        visits_layout.setContentsMargins(0, 0, 0, 0)
         visits_layout.setSpacing(15)
 
         header_layout = QHBoxLayout()
 
         visit_title = QLabel("Найближчий візит")
         visit_title.setStyleSheet("""
-            font-family: 'Inter';
+            font-family: 'Segoe UI';
             font-weight: 700;
-            color: white;
+            color: #023047;
             font-size: 20px;
         """)
 
@@ -79,8 +96,8 @@ class ContentArea(QScrollArea):
         all_visits_btn.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
-                color: white;
-                font-family: 'Inter';
+                color: #2196F3;
+                font-family: 'Segoe UI';
                 font-weight: 600;
                 font-size: 14px;
                 border: none;
@@ -98,9 +115,10 @@ class ContentArea(QScrollArea):
 
         visit_card = QFrame()
         visit_card.setStyleSheet("""
-            background-color: #041e49;
+            background-color: #e3f2fd;
             border-radius: 12px;
             padding: 15px;
+            border: 1px solid rgba(2, 48, 71, 0.1);
         """)
         visit_card.setMinimumHeight(80)
 
@@ -111,7 +129,7 @@ class ContentArea(QScrollArea):
         avatar = QLabel()
         avatar.setFixedSize(50, 50)
         avatar.setStyleSheet("""
-            background-color: #0a285c;
+            background-color: #bbdefb;
             border-radius: 25px;
         """)
 
@@ -123,9 +141,9 @@ class ContentArea(QScrollArea):
 
         self.visit_info_label = QLabel("-")
         self.visit_info_label.setStyleSheet("""
-            font-family: 'Inter';
+            font-family: 'Segoe UI';
             font-weight: 700;
-            color: white;
+            color: #023047;
             font-size: 16px;
             padding-left: 15px;
         """)
@@ -135,7 +153,6 @@ class ContentArea(QScrollArea):
         visits_layout.addWidget(visit_card)
         self.content_layout.addWidget(visits_container)
 
-        # Якщо user_id передано, отримуємо найближчий візит з бази
         if self.user_id is None:
             self.visit_info_label.setText("Користувач не знайдений")
             return
@@ -171,19 +188,21 @@ class ContentArea(QScrollArea):
     def _setup_calendar_section(self):
         calendar_container = QFrame()
         calendar_container.setStyleSheet("""
-            background-color: #0a285c;
-            border-radius: 15px;
+            background-color: white;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(2, 48, 71, 0.1);
         """)
         calendar_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         calendar_layout = QVBoxLayout(calendar_container)
-        calendar_layout.setContentsMargins(25, 20, 25, 20)
+        calendar_layout.setContentsMargins(0, 0, 0, 0)
 
         calendar_title = QLabel("Календар")
         calendar_title.setStyleSheet("""
-            font-family: 'Inter';
+            font-family: 'Segoe UI';
             font-weight: 700;
-            color: white;
+            color: #023047;
             font-size: 20px;
         """)
         calendar_layout.addWidget(calendar_title)

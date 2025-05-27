@@ -9,9 +9,8 @@ class EnterWindow(QWidget):
         self.setWindowTitle("VitalCore - Панель здоров'я")
         self.showFullScreen()
         self.setStyleSheet("""
-            background-color: #021a43; 
-            border-radius: 20px;
-            font-family: 'Inter';
+            background-color: #f5f9ff; 
+            font-family: 'Segoe UI';
         """)
         self.init_ui()
 
@@ -23,7 +22,6 @@ class EnterWindow(QWidget):
         sidebar = Sidebar(self)
         sidebar.open_reminders_requested.connect(self.open_reminders)
 
-        # Передаємо user_id у ContentArea
         content_area = ContentArea(self.user_id)
 
         main_layout.addWidget(sidebar)
@@ -31,6 +29,6 @@ class EnterWindow(QWidget):
 
     def open_reminders(self):
         from reminder_ui import ReminderWindow
-        print(f"Відкриваємо нагадування для user_id={self.user_id}")  # Переконайся, що тут є user_id
-        self.reminder_window = ReminderWindow(self.user_id)  # Передаємо user_id
+        print(f"Відкриваємо нагадування для user_id={self.user_id}")
+        self.reminder_window = ReminderWindow(self.user_id)
         self.reminder_window.show()
