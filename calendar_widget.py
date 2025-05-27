@@ -18,28 +18,36 @@ class CalendarWidget(QWidget):
         
         self.calendar = QCalendarWidget()
         self.calendar.setStyleSheet("""
-            QCalendarWidget {
-                background-color: white;
-                border-radius: 16px;
-                padding: 15px;
-            }
-            QCalendarWidget QToolButton {
-                color: #023047;
-                font-size: 14px;
-                font-weight: 600;
-            }
-            QCalendarWidget QMenu {
-                background-color: white;
-                color: #023047;
-            }
-            QCalendarWidget QSpinBox {
-                background-color: white;
-                color: #023047;
-            }
-            QCalendarWidget QWidget { 
-                alternate-background-color: white; 
-            }
-        """)
+    QCalendarWidget {
+        background-color: white;
+        border-radius: 16px;
+        padding: 15px;
+    }
+    QCalendarWidget QToolButton {
+        color: #023047;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    QCalendarWidget QMenu {
+        background-color: white;
+        color: #023047;
+    }
+    QCalendarWidget QSpinBox {
+        background-color: white;
+        color: #023047;
+    }
+    QCalendarWidget QWidget { 
+        alternate-background-color: white; 
+    }
+    /* Додайте ці нові стилі */
+    QCalendarWidget QAbstractItemView:enabled {
+        color: #023047;  /* Колір тексту днів */
+        font-size: 14px;
+        font-weight: 500;
+        selection-background-color: #a2d2ff;
+        selection-color: #023047;
+    }
+""")
         self.calendar.setGridVisible(True)
         self.calendar.clicked.connect(self.on_date_selected)
         
@@ -152,15 +160,17 @@ class CalendarWidget(QWidget):
                 # Очищаємо всі підсвітки
                 self.calendar.setDateTextFormat(QDate(), QTextCharFormat())
 
-                # Формати для підсвітки
                 yellow_fmt = QTextCharFormat()
                 yellow_fmt.setBackground(QColor("#FFD966"))  # жовтий
+                yellow_fmt.setForeground(QColor("#023047"))  # темно-синій текст
 
                 green_fmt = QTextCharFormat()
                 green_fmt.setBackground(QColor("#6CCC5A"))  # зелений
-
+                green_fmt.setForeground(QColor("#023047"))  # темно-синій текст
                 purple_fmt = QTextCharFormat()
                 purple_fmt.setBackground(QColor("#9b59b6"))  # фіолетовий
+                purple_fmt.setForeground(QColor("023047"))  # білий текст для контрасту
+              
 
                 # Об'єднуємо всі дати для підсвітки
                 all_dates = meds_dates.union(visits_dates)

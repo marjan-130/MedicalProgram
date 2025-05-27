@@ -143,7 +143,7 @@ class ProfileWindow(QMainWindow):
         self.bottom_bar = QHBoxLayout()
         self.bottom_bar.addStretch()
 
-        self.back_button = QPushButton("🔙 Назад у головне меню")
+        self.back_button = QPushButton("🔙 Назад")
         self.back_button.setStyleSheet("""
             QPushButton {
                 background-color: #8ecae6;

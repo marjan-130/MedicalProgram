@@ -129,6 +129,7 @@ class Sidebar(QFrame):
             {"icon": "img/SVG.svg", "text": "Головна", "selected": True},
             {"icon": "img/user.svg", "text": "Мій профіль", "selected": False},
             {"icon": "img/bell.svg", "text": "Нагадування", "selected": False},
+            {"icon": "img/search.svg", "text": "Пошук лікарів", "selected": False}
         ]
 
         for item in nav_items:
@@ -173,19 +174,27 @@ class Sidebar(QFrame):
 
     def on_nav_clicked(self, text):
         if text == "Мій профіль":
-            user_id = session.get_session_user_id()
-            if user_id is not None:
-                self.open_profile(user_id)
-            else:
-                # Якщо сесія відсутня - можна вивести повідомлення або нічого не робити
-                print("Користувач не авторизований, перехід у профіль заборонено.")
+          user_id = session.get_session_user_id()
+          if user_id is not None:
+            self.open_profile(user_id)
+          else:
+            print("Користувач не авторизований, перехід у профіль заборонено.")
         elif text == "Головна":
-            self.return_to_main_menu()
+          self.return_to_main_menu()
         elif text == "Нагадування":
-            self.open_reminders_requested.emit()
-
+          self.open_reminders_requested.emit()
+        elif text == "Пошук лікарів":  # Додано новий обробник
+          self.open_doctor_search()
         else:
-            print(f"Clicked on: {text}")
+          print(f"Clicked on: {text}")
+
+    def open_doctor_search(self):
+        from search_ui import DoctorSearchTab
+        import sqlite3
+        db = sqlite3.connect('medical_program.db')  # Зверніть увагу на правильну назву бази
+        user_id = session.get_session_user_id()
+        self.search_window = DoctorSearchTab(db, user_id)
+        self.search_window.show()
 
     def open_profile(self, user_id):
         parent_widget = self.window()

@@ -12,7 +12,41 @@ class MedicineDialog(QDialog):
         self.init_ui()
 
     def init_ui(self):
+        self.setStyleSheet("""
+        QDialog {
+            background-color: white;
+            border-radius: 16px;
+            padding: 20px;
+        }
+        QLabel {
+            color: #023047;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        QLineEdit, QComboBox, QSpinBox, QTimeEdit {
+            background-color: #f5f9ff;
+            border: 1px solid #d0e3ff;
+            border-radius: 8px;
+            padding: 8px;
+            color: #023047;
+            font-size: 14px;
+        }
+        QPushButton {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+        }
+        QPushButton:hover {
+            background-color: #43a047;
+        }
+    """)
         layout = QFormLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
 
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Назва ліків")

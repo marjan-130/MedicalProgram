@@ -70,7 +70,7 @@ class MainWindow(QWidget):
         return center_frame
 
     def create_buttons(self, vbox, marck_font):
-        button_texts = ["Enter", "Login", "Exit", "Search"]
+        button_texts = ["Enter", "Login", "Exit"]
         for text in button_texts:
             btn = QPushButton(text)
             btn.setFixedSize(220, 45)

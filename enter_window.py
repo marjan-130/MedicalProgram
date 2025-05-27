@@ -32,3 +32,10 @@ class EnterWindow(QWidget):
         print(f"Відкриваємо нагадування для user_id={self.user_id}")
         self.reminder_window = ReminderWindow(self.user_id)
         self.reminder_window.show()
+
+    def open_doctor_search(self):
+      from search_ui import DoctorSearchTab
+      import sqlite3
+      db = sqlite3.connect('medical_program.db')
+      self.search_window = DoctorSearchTab(db, self.user_id)
+      self.search_window.show()

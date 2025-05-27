@@ -264,7 +264,8 @@ class DoctorSearchTab(QWidget):
         self.appointment_window.show()
 
     def go_back_to_main(self):
-        from main_window import MainWindow
-        self.main_window = MainWindow()
-        self.main_window.show()
-        self.close()
+     from enter_window import EnterWindow
+     user_id = self.user_id  # Використовуємо user_id, який вже є в класі
+     self.enter_window = EnterWindow(user_id)
+     self.enter_window.show()
+     self.close()
