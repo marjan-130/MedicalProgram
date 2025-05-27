@@ -159,6 +159,8 @@ class DoctorSearchTab(QWidget):
                 color: black;
             }
         """)
+        self.search_input.returnPressed.connect(self.load_doctors_from_db)
+
 
         search_button = QPushButton("\u0417\u043d\u0430\u0439\u0442\u0438")
         search_button.setStyleSheet("""
