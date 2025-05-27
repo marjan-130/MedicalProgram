@@ -22,13 +22,16 @@ class AppointmentWidget(QWidget):
         self.date_edit.setCalendarPopup(True)
         today = QDate.currentDate()
         self.date_edit.setDate(today)
-
-        # Забороняємо минулі дати
         self.date_edit.setMinimumDate(today)
 
-        # Обмеження лише поточним місяцем
-        last_day = QDate(today.year(), today.month(), today.daysInMonth())
-        self.date_edit.setMaximumDate(last_day)
+        self.available_dates = self.get_available_dates()
+        if self.available_dates:
+            self.date_edit.setDate(self.available_dates[0])
+            self.date_edit.setMinimumDate(self.available_dates[0])
+            self.date_edit.setMaximumDate(self.available_dates[-1])
+        else:
+            QMessageBox.information(self, "Немає доступу", "У цьому місяці немає доступних днів.")
+            self.setDisabled(True)
 
         self.layout.addWidget(self.date_edit)
 
@@ -44,28 +47,77 @@ class AppointmentWidget(QWidget):
         self.date_edit.dateChanged.connect(self.update_time_slots)
         self.update_time_slots()
 
-    def update_time_slots(self):
-        self.time_box.clear()
-        date = self.date_edit.date().toPyDate()
+    def get_doctor_id(self):
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT d.id FROM doctors d
+                JOIN user_info ui ON d.user_info_id = ui.id
+                WHERE ui.full_name = ?
+            ''', (self.doctor_name,))
+            row = cursor.fetchone()
+            return row[0] if row else None
+
+    def get_available_dates(self):
+        doctor_id = self.get_doctor_id()
+        if not doctor_id:
+            return []
+
+        today = datetime.date.today()
+        last_day = datetime.date(today.year, today.month, QDate(today.year, today.month, 1).daysInMonth())
+        available = []
+
+        for offset in range((last_day - today).days + 1):
+            day = today + datetime.timedelta(days=offset)
+            if day.weekday() > 4:
+                continue
+            slots = self.get_all_slots_for_day(day)
+            booked = self.get_booked_slots(doctor_id, day)
+            if len(booked) < len(slots):
+                available.append(QDate(day.year, day.month, day.day))
+        return available
+
+    def get_all_slots_for_day(self, date):
         weekday = date.weekday()
-
-        # Тільки будні дні (Пн–Пт)
-        if weekday > 4:
-            return
-
         slots = []
-        if weekday in [0, 2, 4]:  # Пн, Ср, Пт
+        if weekday in [0, 2, 4]:
             hours = range(9, 13)
-        elif weekday in [1, 3]:  # Вт, Чт
+        elif weekday in [1, 3]:
             hours = range(15, 19)
         else:
-            return
+            return []
 
         for h in hours:
             for m in [0, 20, 40]:
                 slots.append(f"{h:02d}:{m:02d}")
+        return slots
 
-        self.time_box.addItems(slots)
+    def get_booked_slots(self, doctor_id, date):
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT appointment_time FROM appointments
+                WHERE doctor_id = ? AND appointment_date = ?
+            ''', (doctor_id, date.strftime("%Y-%m-%d")))
+            return [row[0] for row in cursor.fetchall()]
+
+    def update_time_slots(self):
+        self.time_box.clear()
+        date = self.date_edit.date().toPyDate()
+        doctor_id = self.get_doctor_id()
+        if not doctor_id:
+            return
+
+        all_slots = self.get_all_slots_for_day(date)
+        booked_slots = self.get_booked_slots(doctor_id, date)
+        free_slots = [slot for slot in all_slots if slot not in booked_slots]
+
+        if not free_slots:
+            self.time_box.addItem("Немає доступного часу")
+            self.book_button.setDisabled(True)
+        else:
+            self.time_box.addItems(free_slots)
+            self.book_button.setEnabled(True)
 
     def get_patient_id(self):
         with sqlite3.connect(DB_PATH) as conn:
@@ -83,47 +135,28 @@ class AppointmentWidget(QWidget):
             QMessageBox.critical(self, "Помилка", "Сесія недійсна або ви не пацієнт.")
             return
 
+        doctor_id = self.get_doctor_id()
+        if not doctor_id:
+            QMessageBox.critical(self, "Помилка", "Лікаря не знайдено.")
+            return
+
+        date_qdate = self.date_edit.date()
+        date_str = date_qdate.toString("yyyy-MM-dd")
+        time_str = self.time_box.currentText()
+
+        if time_str == "Немає доступного часу":
+            QMessageBox.warning(self, "Зайнято", "Цей день повністю зайнятий.")
+            return
+
         with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                SELECT d.id FROM doctors d
-                JOIN user_info ui ON d.user_info_id = ui.id
-                WHERE ui.full_name = ?
-            ''', (self.doctor_name,))
-            doctor_row = cursor.fetchone()
-            if not doctor_row:
-                QMessageBox.critical(self, "Помилка", "Лікаря не знайдено.")
-                return
-            doctor_id = doctor_row[0]
-
-            date_qdate = self.date_edit.date()
-            date_py = date_qdate.toPyDate()
-            today = datetime.date.today()
-
-            #  Заборонити минулі дати
-            if date_py < today:
-                QMessageBox.warning(self, "Недійсна дата", "Неможливо записатися на минулу дату.")
-                return
-
-            #  Заборонити запис не на поточний місяць
-            if date_py.month != today.month or date_py.year != today.year:
-                QMessageBox.warning(self, "Недійсна дата", "Запис доступний лише на поточний місяць.")
-                return
-
-            #  Заборонити запис у вихідні
-            if date_py.weekday() > 4:
-                QMessageBox.warning(self, "Недійсний день", "Запис можливий лише в будні дні.")
-                return
-
-            date_str = date_qdate.toString("yyyy-MM-dd")
-            time_str = self.time_box.currentText()
-
             cursor.execute('''
                 SELECT id FROM appointments
                 WHERE doctor_id = ? AND appointment_date = ? AND appointment_time = ?
             ''', (doctor_id, date_str, time_str))
             if cursor.fetchone():
                 QMessageBox.warning(self, "Зайнято", "Цей час вже зайнятий.")
+                self.update_time_slots()
                 return
 
             cursor.execute('''
